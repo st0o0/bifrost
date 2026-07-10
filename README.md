@@ -25,7 +25,7 @@ so `network_mode: service:bifrost` dependents stay connected.
 3. `docker compose up -d`
 
 ```bash
-docker logs -f bifrost           # shows data path + reresolve loop
+docker logs -f bifrost           # shows data path + recovery loop
 docker inspect --format '{{.State.Health.Status}}' bifrost
 ```
 

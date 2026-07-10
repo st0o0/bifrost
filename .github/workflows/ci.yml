@@ -30,9 +30,9 @@ jobs:
       - name: Install bats
         run: sudo apt-get update && sudo apt-get install -y bats
       - name: Make scripts executable
-        run: chmod +x tests/mocks/wg src/entrypoint.sh src/healthcheck.sh src/reresolve-dns.sh
+        run: chmod +x tests/mocks/wg src/entrypoint.sh src/healthcheck.sh src/resolve.sh
       - name: Run unit tests
-        run: bats tests/lib.bats tests/healthcheck.bats tests/reresolve.bats tests/entrypoint.bats
+        run: bats tests/libhelpers.bats tests/lib.bats tests/healthcheck.bats tests/resolve.bats tests/entrypoint.bats
 
   build:
     runs-on: ubuntu-latest

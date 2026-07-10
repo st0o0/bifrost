@@ -22,7 +22,7 @@ COPY src/ /opt/bifrost/
 COPY LICENSE NOTICE /opt/bifrost/
 RUN chmod +x /opt/bifrost/entrypoint.sh \
              /opt/bifrost/healthcheck.sh \
-             /opt/bifrost/reresolve-dns.sh
+             /opt/bifrost/resolve.sh
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD /opt/bifrost/healthcheck.sh || exit 1
