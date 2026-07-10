@@ -9,7 +9,7 @@ ENV CGO_ENABLED=0
 RUN go install golang.zx2c4.com/wireguard@v0.0.0-20260522210424-ecfc5a8d5446
 
 # ---- runtime ----
-FROM alpine:3.20 AS runtime
+FROM alpine:3.24 AS runtime
 RUN apk add --no-cache \
       wireguard-tools \
       iptables \
