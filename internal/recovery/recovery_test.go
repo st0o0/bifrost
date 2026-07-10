@@ -8,7 +8,10 @@ import (
 
 func TestBackoff(t *testing.T) {
 	base := 5 * time.Second
-	for _, c := range []struct{ n int; want time.Duration }{
+	for _, c := range []struct {
+		n    int
+		want time.Duration
+	}{
 		{1, 5 * time.Second}, {2, 10 * time.Second}, {3, 20 * time.Second}, {5, 60 * time.Second},
 	} {
 		if got := Backoff(c.n, base); got != c.want {
@@ -19,9 +22,9 @@ func TestBackoff(t *testing.T) {
 
 // fakeCtrl reports a new handshake after N resolve or reconnect calls.
 type fakeCtrl struct {
-	hs                       time.Time
-	resolveN, reconnectN     int
-	resolveAt, reconnectAt   int
+	hs                     time.Time
+	resolveN, reconnectN   int
+	resolveAt, reconnectAt int
 }
 
 func (f *fakeCtrl) NewestHandshake() time.Time { return f.hs }

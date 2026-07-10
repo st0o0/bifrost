@@ -39,10 +39,10 @@ func TestLoadSettingsOverrideAndBool(t *testing.T) {
 
 func TestLoadSettingsValidation(t *testing.T) {
 	cases := map[string]string{
-		"BIFROST_CHECK_INTERVAL": "0",   // below floor 1
-		"BIFROST_PROBE_INTERVAL": "0",   // below floor 1
-		"BIFROST_RESOLVE_RETRIES": "abc", // non-numeric
-		"BIFROST_PROBE":          "maybe", // bad bool
+		"BIFROST_CHECK_INTERVAL":  "0",     // below floor 1
+		"BIFROST_PROBE_INTERVAL":  "0",     // below floor 1
+		"BIFROST_RESOLVE_RETRIES": "abc",   // non-numeric
+		"BIFROST_PROBE":           "maybe", // bad bool
 	}
 	for k, v := range cases {
 		if _, err := LoadSettings(env(map[string]string{k: v})); err == nil {
