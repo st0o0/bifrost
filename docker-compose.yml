@@ -1,0 +1,25 @@
+services:
+  bifrost:
+    image: ghcr.io/st0o0/bifrost:latest
+    container_name: bifrost
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      # Only needed if the kernel WireGuard module is unavailable (userspace fallback)
+      - /dev/net/tun:/dev/net/tun
+    env_file: .env
+    volumes:
+      - ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
+    # Publish the ports of the service routed through the tunnel here:
+    ports:
+      - "127.0.0.1:8200:8200"
+
+  # Example dependent service tunneled through bifrost.
+  app:
+    image: yourapp:latest
+    restart: unless-stopped
+    network_mode: "service:bifrost"
+    depends_on:
+      bifrost:
+        condition: service_healthy

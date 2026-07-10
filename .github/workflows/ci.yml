@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: "."
+          # Vendored upstream bash script — lint it on its own terms, don't force our sh dialect on it.
+          ignore_paths: "src/reresolve-dns.sh"
+      - name: hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Make scripts executable
+        run: chmod +x tests/mocks/wg src/entrypoint.sh src/healthcheck.sh src/reresolve-dns.sh
+      - name: Run unit tests
+        run: bats tests/lib.bats tests/healthcheck.bats tests/reresolve.bats tests/entrypoint.bats
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: bifrost:ci
+      - name: Smoke test
+        run: |
+          docker run --rm --entrypoint sh bifrost:ci -c \
+            'command -v wg && command -v wg-quick && command -v wireguard-go && ls /opt/bifrost'
+          code=0
+          docker run --rm bifrost:ci || code=$?
+          test "$code" -eq 1
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: bifrost:ci
+      - name: Run e2e
+        run: |
+          chmod +x tests/e2e/run.sh
+          ./tests/e2e/run.sh

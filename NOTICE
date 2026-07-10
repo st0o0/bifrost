@@ -1,0 +1,16 @@
+bifrost
+Copyright (c) 2026 st0o0
+Licensed under the MIT License (see LICENSE).
+
+This project vendors one file under a different license:
+
+  src/reresolve-dns.sh
+    Source: https://github.com/WireGuard/wireguard-tools
+            (contrib/reresolve-dns/reresolve-dns.sh)
+    License: GPL-2.0-only
+    The file retains its original upstream copyright and license header and
+    is used unmodified.
+
+The distributed container image also aggregates GPL-2.0 software from the
+Alpine packages wireguard-tools and (built from source) wireguard-go. These
+are combined by mere aggregation; each retains its own license.

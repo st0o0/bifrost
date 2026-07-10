@@ -1,0 +1,7 @@
+#!/bin/sh
+# Minimal mock of the `wg` command for tests.
+# Supports: wg show <iface> latest-handshakes  -> prints $WG_MOCK_HANDSHAKES
+if [ "$1" = "show" ] && [ "$3" = "latest-handshakes" ]; then
+  printf '%s\n' "${WG_MOCK_HANDSHAKES:-}"
+fi
+exit 0

@@ -1,0 +1,12 @@
+# Local design/plan docs — never committed
+docs/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Test artifacts
+tests/tmp/
+*.log
