@@ -98,6 +98,43 @@ run_scenario() {  # $1=label  $2..=extra client env flags
   docker rm -f bifrost-e2e-client bifrost-e2e-server >/dev/null 2>&1 || true
 }
 
+run_probe_scenario() {
+  echo "== [probe] starting server + client (probe on, STALE_AFTER=999) =="
+  start_server "$SERVER_IP1"
+  docker run -d --rm --name bifrost-e2e-client --network "$NET" --ip "$CLIENT_IP" \
+    --cap-add NET_ADMIN --device /dev/net/tun \
+    -e BIFROST_STALE_AFTER=999 \
+    -e BIFROST_PROBE=on -e BIFROST_PROBE_INTERVAL=2 -e BIFROST_PROBE_FAILS=2 -e BIFROST_PROBE_TIMEOUT=1 \
+    -e BIFROST_RESOLVE=off -e BIFROST_RECONNECT=on -e BIFROST_RECONNECT_BACKOFF=2 -e BIFROST_RECONNECT_RETRIES=10 \
+    -e BIFROST_HEALTHCHECK=off \
+    -v "$CVOL:/etc/wireguard:ro" "$IMAGE" >/dev/null
+
+  local ok=0 hs
+  for _ in $(seq 1 30); do hs="$(client_handshake)"; [ "$hs" -gt 0 ] && { ok=1; break; }; sleep 2; done
+  [ "$ok" -eq 1 ] || { echo "[probe] FAIL: no initial handshake"; docker logs bifrost-e2e-server; docker logs bifrost-e2e-client; return 1; }
+  local before="$hs"
+  echo "[probe] initial handshake $before"
+
+  echo "== [probe] killing server; only the probe can trigger (STALE_AFTER=999) =="
+  docker rm -f bifrost-e2e-server >/dev/null
+  ok=0
+  for _ in $(seq 1 20); do
+    docker logs bifrost-e2e-client 2>&1 | grep -q "probe — all targets down" && { ok=1; break; }
+    sleep 2
+  done
+  [ "$ok" -eq 1 ] || { echo "[probe] FAIL: probe did not trigger recovery"; docker logs bifrost-e2e-client; return 1; }
+  echo "[probe] OK: probe triggered recovery fast (well before STALE_AFTER=999)"
+
+  echo "== [probe] bringing server back -> recovers =="
+  start_server "$SERVER_IP1"
+  ok=0
+  for _ in $(seq 1 40); do hs="$(client_handshake)"; [ "$hs" -gt "$before" ] && { ok=1; break; }; sleep 3; done
+  [ "$ok" -eq 1 ] || { echo "[probe] FAIL: no recovery after server returned"; docker logs bifrost-e2e-client; return 1; }
+  echo "[probe] OK: recovered after server returned"
+  docker rm -f bifrost-e2e-client bifrost-e2e-server >/dev/null 2>&1 || true
+}
+
 run_scenario "resolve"   -e BIFROST_RESOLVE=on  -e BIFROST_RECONNECT=off
 run_scenario "reconnect" -e BIFROST_RESOLVE=off -e BIFROST_RECONNECT=on
-echo "E2E PASSED (resolve + reconnect)"
+run_probe_scenario
+echo "E2E PASSED (resolve + reconnect + probe)"
