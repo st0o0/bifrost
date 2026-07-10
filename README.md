@@ -58,6 +58,10 @@ configurable; either stage can be turned off.
 If you change `BIFROST_INTERFACE` away from `wg0`, mount your config at the
 matching `/etc/wireguard/<name>.conf` (the example compose mounts `wg0.conf`).
 
+Setting `BIFROST_HEALTHCHECK=off` makes the container report healthy
+unconditionally, so a dependent using `depends_on: condition: service_healthy`
+will start regardless of tunnel state.
+
 Requires `cap_add: NET_ADMIN`. `/dev/net/tun` is only needed for the userspace
 fallback (older kernels / hosts without the WireGuard module).
 

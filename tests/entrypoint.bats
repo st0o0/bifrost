@@ -27,3 +27,27 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"BIFROST_RESOLVE"* ]]
 }
+
+@test "entrypoint rejects non-numeric BIFROST_HEALTH_STALE_AFTER" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_HEALTH_STALE_AFTER=180s
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_HEALTH_STALE_AFTER"* ]]
+}
+
+@test "entrypoint rejects invalid BIFROST_HEALTHCHECK toggle" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_HEALTHCHECK=enabled
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_HEALTHCHECK"* ]]
+}
+
+@test "entrypoint rejects BIFROST_CHECK_INTERVAL=0" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_CHECK_INTERVAL=0
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_CHECK_INTERVAL"* ]]
+}

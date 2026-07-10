@@ -23,6 +23,10 @@ bifrost_require_int  BIFROST_RECONNECT_RETRIES  "$RECONNECT_RETRIES"
 bifrost_require_int  BIFROST_RECONNECT_BACKOFF  "$RECONNECT_BACKOFF"
 bifrost_require_bool BIFROST_RESOLVE            "${BIFROST_RESOLVE:-on}"
 bifrost_require_bool BIFROST_RECONNECT          "${BIFROST_RECONNECT:-on}"
+bifrost_require_bool BIFROST_HEALTHCHECK        "${BIFROST_HEALTHCHECK:-on}"
+bifrost_require_int  BIFROST_HEALTH_STALE_AFTER "${BIFROST_HEALTH_STALE_AFTER:-180}"
+
+[ "$CHECK_INTERVAL" -ge 1 ] || { echo "bifrost: BIFROST_CHECK_INTERVAL must be >= 1" >&2; exit 1; }
 
 if [ ! -f "$CONF" ]; then
     echo "bifrost: config not found at $CONF — mount your WireGuard .conf there" >&2
