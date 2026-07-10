@@ -71,13 +71,29 @@ func ParseConfig(r io.Reader) (*Config, error) {
 				return nil, fmt.Errorf("line %d: %w", line, err)
 			}
 		default:
-			return nil, fmt.Errorf("line %d: setting outside a section", line)
+			if section == "" {
+				return nil, fmt.Errorf("line %d: setting outside a section", line)
+			}
+			return nil, fmt.Errorf("line %d: unknown section %q", line, section)
 		}
 	}
 	if err := sc.Err(); err != nil {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+// Validate checks required fields.
+func (c *Config) Validate() error {
+	if c.PrivateKey == "" {
+		return fmt.Errorf("[Interface] PrivateKey is required")
+	}
+	for i, p := range c.Peers {
+		if p.PublicKey == "" {
+			return fmt.Errorf("[Peer] %d: PublicKey is required", i+1)
+		}
+	}
+	return nil
 }
 
 func (c *Config) setInterface(key, val string) error {
