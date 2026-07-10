@@ -17,8 +17,6 @@ jobs:
         uses: ludeeus/action-shellcheck@2.0.0
         with:
           scandir: "."
-          # Vendored upstream bash script — lint it on its own terms, don't force our sh dialect on it.
-          ignore_paths: "src/reresolve-dns.sh"
       - name: hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
