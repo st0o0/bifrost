@@ -34,11 +34,26 @@ the service `network_mode: "service:bifrost"`.
 
 ## Configuration
 
+bifrost recovers a stale tunnel in two escalating stages per episode: first it
+re-resolves DDNS endpoints in place (gentle, `wg set`), retrying with
+exponential backoff; if that doesn't restore a handshake it falls back to an
+active `wg-quick down/up` (the network namespace is preserved, so dependents
+stay attached). Each stage's retries/backoff and the trigger thresholds are
+configurable; either stage can be turned off.
+
 | Variable | Default | Purpose |
 |---|---|---|
 | `BIFROST_INTERFACE` | `wg0` | Config file name (`/etc/wireguard/<name>.conf`) |
-| `BIFROST_RERESOLVE_INTERVAL` | `30` | Seconds between DDNS re-resolve runs (`0` disables) |
-| `BIFROST_HEALTH_MAX_HANDSHAKE_AGE` | `180` | Healthcheck threshold in seconds |
+| `BIFROST_CHECK_INTERVAL` | `30` | Supervisor: how often to check handshake freshness (seconds) |
+| `BIFROST_STALE_AFTER` | `135` | Handshake age (seconds) that triggers a recovery episode |
+| `BIFROST_RESOLVE` | `on` | Recovery stage 1: re-resolve DDNS endpoints (gentle, in place) |
+| `BIFROST_RESOLVE_RETRIES` | `5` | Stage 1 retry count |
+| `BIFROST_RESOLVE_BACKOFF` | `5` | Stage 1 backoff (seconds) |
+| `BIFROST_RECONNECT` | `on` | Recovery stage 2: active `wg-quick down/up` (netns preserved) |
+| `BIFROST_RECONNECT_RETRIES` | `5` | Stage 2 retry count |
+| `BIFROST_RECONNECT_BACKOFF` | `5` | Stage 2 backoff (seconds) |
+| `BIFROST_HEALTHCHECK` | `on` | Enable/disable the container healthcheck |
+| `BIFROST_HEALTH_STALE_AFTER` | `180` | Healthcheck threshold in seconds |
 
 If you change `BIFROST_INTERFACE` away from `wg0`, mount your config at the
 matching `/etc/wireguard/<name>.conf` (the example compose mounts `wg0.conf`).
