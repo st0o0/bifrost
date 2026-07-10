@@ -10,6 +10,13 @@ RUN go install golang.zx2c4.com/wireguard@v0.0.0-20260522210424-ecfc5a8d5446
 
 # ---- runtime ----
 FROM alpine:3.20 AS runtime
+
+LABEL org.opencontainers.image.title="bifrost" \
+      org.opencontainers.image.description="Minimal WireGuard client container that keeps dependents tunneled across DDNS endpoint IP changes without a netns teardown" \
+      org.opencontainers.image.source="https://github.com/st0o0/bifrost" \
+      org.opencontainers.image.documentation="https://github.com/st0o0/bifrost#readme" \
+      org.opencontainers.image.licenses="MIT"
+
 RUN apk add --no-cache \
       wireguard-tools \
       iptables \
