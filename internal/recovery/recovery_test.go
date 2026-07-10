@@ -77,3 +77,15 @@ func TestRecoverExhausted(t *testing.T) {
 		t.Fatal("expected failure")
 	}
 }
+
+func TestRecoverContextCancelled(t *testing.T) {
+	f := &fakeCtrl{} // never recovers
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if Recover(ctx, f, opts()) {
+		t.Fatal("expected failure")
+	}
+	if f.resolveN+f.reconnectN > 1 {
+		t.Errorf("attempts = %d, want <= 1 (abort almost immediately)", f.resolveN+f.reconnectN)
+	}
+}

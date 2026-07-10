@@ -48,3 +48,32 @@ func TestParseConfigError(t *testing.T) {
 		t.Error("expected error for setting outside a section")
 	}
 }
+
+func TestValidateMissingPrivateKey(t *testing.T) {
+	cfg := &Config{
+		Peers: []Peer{{PublicKey: "k"}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Error("expected error for missing PrivateKey")
+	}
+}
+
+func TestValidateMissingPeerPublicKey(t *testing.T) {
+	cfg := &Config{
+		PrivateKey: "k",
+		Peers:      []Peer{{}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Error("expected error for missing peer PublicKey")
+	}
+}
+
+func TestValidateComplete(t *testing.T) {
+	cfg := &Config{
+		PrivateKey: "k",
+		Peers:      []Peer{{PublicKey: "pk"}},
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+}
