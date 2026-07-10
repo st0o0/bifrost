@@ -11,3 +11,19 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"config not found"* ]]
 }
+
+@test "entrypoint rejects non-numeric BIFROST_CHECK_INTERVAL" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_CHECK_INTERVAL=abc
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_CHECK_INTERVAL"* ]]
+}
+
+@test "entrypoint rejects invalid toggle BIFROST_RESOLVE" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_RESOLVE=maybe
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_RESOLVE"* ]]
+}
