@@ -72,3 +72,34 @@ bifrost_backoff() {  # $1=attempt $2=base
     [ "$_d" -gt 60 ] && _d=60
     echo "$_d"
 }
+
+# Print probe targets, one IP per line: BIFROST_PROBE_HOST if set, else the
+# /32 (IPv4) and /128 (IPv6) host entries of the config's AllowedIPs.
+bifrost_probe_targets() {  # $1 = config path
+    if [ -n "${BIFROST_PROBE_HOST:-}" ]; then
+        printf '%s\n' "$BIFROST_PROBE_HOST" | tr ',' ' ' | tr ' ' '\n' | grep -v '^$'
+        return 0
+    fi
+    grep -iE '^[[:space:]]*AllowedIPs[[:space:]]*=' "$1" 2>/dev/null \
+      | sed 's/#.*//; s/^[^=]*=//' | tr ',' '\n' \
+      | while IFS= read -r _e; do
+            _e="$(printf '%s' "$_e" | tr -d '[:space:]')"
+            case "$_e" in
+                */32)  printf '%s\n' "${_e%/32}" ;;
+                */128) printf '%s\n' "${_e%/128}" ;;
+            esac
+        done
+}
+
+# Ping each target (one per line on stdin) once. Return 0 if ANY responds
+# (round "up"), 1 if ALL fail (round "down").
+bifrost_probe_once() {  # $1 = per-ping timeout (seconds)
+    _to="$1"
+    while IFS= read -r _t; do
+        [ -n "$_t" ] || continue
+        if ping -c1 -W "$_to" "$_t" >/dev/null 2>&1; then
+            return 0
+        fi
+    done
+    return 1
+}
