@@ -1,0 +1,3 @@
+failure-threshold: warning
+ignored:
+  - DL3018  # pinning apk versions not required for this image
