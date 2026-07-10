@@ -4,8 +4,13 @@ set -eu
 DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$DIR/lib.sh"
 
+if ! bifrost_bool "${BIFROST_HEALTHCHECK:-on}"; then
+    echo "bifrost: healthcheck disabled"
+    exit 0
+fi
+
 IFACE="$(bifrost_interface)"
-MAX_AGE="${BIFROST_HEALTH_MAX_HANDSHAKE_AGE:-180}"
+MAX_AGE="${BIFROST_HEALTH_STALE_AFTER:-180}"
 
 now="$(date +%s)"
 newest=0
