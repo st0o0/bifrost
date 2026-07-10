@@ -21,7 +21,7 @@ handshakes="$(wg show "$IFACE" latest-handshakes 2>/dev/null || true)"
 IFS='
 '
 for line in $handshakes; do
-    ts="${line#*$TAB}"
+    ts="${line#*"$TAB"}"
     case "$ts" in
         ''|*[!0-9]*) continue ;;
     esac
