@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build wireguard-go (userspace fallback; not in Alpine stable) ----
-FROM golang:1.23-alpine AS wggo
+FROM golang:1.26-alpine AS wggo
 ENV CGO_ENABLED=0
 # wireguard-go's main package is the MODULE ROOT (there is no cmd/wireguard-go),
 # so the produced binary is named `wireguard`. The project stopped publishing
