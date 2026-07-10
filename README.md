@@ -130,6 +130,29 @@ Default escalation ordering: **resolve at 135 s** → **healthcheck flips at
 
 All configuration is via environment variables (see `.env.example`).
 
+### Liveness probe (optional, faster detection)
+
+Recovery normally triggers on handshake age, whose floor is ~135 s (WireGuard
+rekeys a healthy tunnel roughly every 120 s, and its timers aren't tunable). To
+react faster, enable an active ICMP probe: it pings the tunnel-internal hosts
+and triggers recovery when they go unreachable — typically within ~30 s at the
+conservative defaults. It is an **additional, independent** trigger; whichever
+fires first (probe or handshake age) starts recovery.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BIFROST_PROBE` | `off` | Enable the liveness probe |
+| `BIFROST_PROBE_INTERVAL` | `10` | Seconds per probe round |
+| `BIFROST_PROBE_FAILS` | `3` | Consecutive "all targets down" rounds before triggering |
+| `BIFROST_PROBE_TIMEOUT` | `2` | Per-ping timeout (seconds) |
+| `BIFROST_PROBE_HOST` | *(AllowedIPs)* | Explicit target(s); default derives `/32`+`/128` hosts from AllowedIPs |
+
+Targets are pinged **inside** the tunnel; a round counts as down only when
+**every** target fails, so a single offline host never triggers recovery — only
+a genuinely dead tunnel does. Ranges and `0.0.0.0/0` are skipped (not pingable);
+for a full-tunnel setup set `BIFROST_PROBE_HOST` explicitly. At least one target
+must answer ICMP.
+
 ### Interface & monitoring
 
 | Variable | Default | Purpose |
