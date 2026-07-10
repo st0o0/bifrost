@@ -1,12 +1,27 @@
 name: ci
 
+# Validation runs on pull requests only. A PR is tested on its merge-result
+# commit, so re-running the same checks on the post-merge push to main would be
+# pure duplication — release.yml owns main. Enable branch protection ("require
+# a pull request before merging") so every change to main is validated here.
 on:
   pull_request:
-  push:
-    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.hadolint.yaml'
+      - '.shellcheckrc'
+      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
+
+# One in-flight run per PR; pushing new commits cancels the superseded run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
@@ -46,6 +61,8 @@ jobs:
           push: false
           load: true
           tags: bifrost:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Smoke test
         run: |
           docker run --rm --entrypoint sh bifrost:ci -c \
@@ -54,7 +71,10 @@ jobs:
           docker run --rm bifrost:ci || code=$?
           test "$code" -eq 1
 
+  # e2e is the slow job (~minutes) — only run it once the cheap checks pass.
+  # The image build is a cache hit from the build job.
   e2e:
+    needs: [lint, unit, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -67,6 +87,8 @@ jobs:
           push: false
           load: true
           tags: bifrost:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Run e2e
         run: |
           chmod +x tests/e2e/run.sh

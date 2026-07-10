@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: commitlint-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   commitlint:
     runs-on: ubuntu-latest

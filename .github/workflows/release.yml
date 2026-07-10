@@ -8,6 +8,11 @@ permissions:
   contents: write
   pull-requests: write
 
+# Never cancel an in-flight release (a partial GHCR publish is worse than a wait).
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release-please:
     runs-on: ubuntu-latest
