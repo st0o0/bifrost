@@ -151,7 +151,9 @@ Targets are pinged **inside** the tunnel; a round counts as down only when
 **every** target fails, so a single offline host never triggers recovery — only
 a genuinely dead tunnel does. Ranges and `0.0.0.0/0` are skipped (not pingable);
 for a full-tunnel setup set `BIFROST_PROBE_HOST` explicitly. At least one target
-must answer ICMP.
+must answer ICMP — otherwise every round reads "all down"
+and (with the reconnect stage active) flaps a healthy tunnel. On first enable,
+set `BIFROST_PROBE_HOST` to your server's tunnel IP, which reliably answers.
 
 ### Interface & monitoring
 

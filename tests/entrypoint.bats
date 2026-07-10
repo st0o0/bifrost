@@ -67,3 +67,11 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"BIFROST_PROBE_INTERVAL"* ]]
 }
+
+@test "entrypoint rejects BIFROST_PROBE_INTERVAL=0" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_PROBE_INTERVAL=0
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_PROBE_INTERVAL"* ]]
+}

@@ -27,6 +27,9 @@ bifrost_require_bool BIFROST_PROBE           "${BIFROST_PROBE:-off}"
 bifrost_require_int  BIFROST_PROBE_INTERVAL  "${BIFROST_PROBE_INTERVAL:-10}"
 bifrost_require_int  BIFROST_PROBE_FAILS     "${BIFROST_PROBE_FAILS:-3}"
 bifrost_require_int  BIFROST_PROBE_TIMEOUT   "${BIFROST_PROBE_TIMEOUT:-2}"
+[ "${BIFROST_PROBE_INTERVAL:-10}" -ge 1 ] || { echo "bifrost: BIFROST_PROBE_INTERVAL must be >= 1" >&2; exit 1; }
+[ "${BIFROST_PROBE_FAILS:-3}" -ge 1 ]     || { echo "bifrost: BIFROST_PROBE_FAILS must be >= 1" >&2; exit 1; }
+[ "${BIFROST_PROBE_TIMEOUT:-2}" -ge 1 ]   || { echo "bifrost: BIFROST_PROBE_TIMEOUT must be >= 1" >&2; exit 1; }
 bifrost_require_bool BIFROST_HEALTHCHECK        "${BIFROST_HEALTHCHECK:-on}"
 bifrost_require_int  BIFROST_HEALTH_STALE_AFTER "${BIFROST_HEALTH_STALE_AFTER:-180}"
 
@@ -85,7 +88,7 @@ supervise() {
             echo "bifrost: liveness probe on — targets: $(printf '%s ' $_ptargets)(all-down x${BIFROST_PROBE_FAILS:-3} triggers recovery)"
         else
             _tick="$CHECK_INTERVAL"
-            echo "bifrost: probe enabled but no pingable /32 targets — probe inactive"
+            echo "bifrost: probe enabled but no pingable host targets (/32 or /128) — probe inactive"
         fi
     else
         _tick="$CHECK_INTERVAL"
@@ -124,6 +127,7 @@ if bifrost_bool "${BIFROST_RESOLVE:-on}" || bifrost_bool "${BIFROST_RECONNECT:-o
     echo "bifrost: supervisor running (check ${CHECK_INTERVAL}s, stale>${STALE_AFTER}s)"
 else
     echo "bifrost: recovery disabled (resolve and reconnect both off)"
+    bifrost_bool "${BIFROST_PROBE:-off}" && echo "bifrost: probe requested but recovery is disabled — probe will not run" || true
 fi
 
 term() {
