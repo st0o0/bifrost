@@ -10,3 +10,7 @@ docs/
 # Test artifacts
 tests/tmp/
 *.log
+
+# Go build output
+/bifrost
+/bifrost.exe
