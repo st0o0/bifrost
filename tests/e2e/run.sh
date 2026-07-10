@@ -100,7 +100,7 @@ for _ in $(seq 1 30); do
   [ "$hs" -gt 0 ] && { ok=1; break; }
   sleep 2
 done
-[ "$ok" -eq 1 ] || { echo "FAIL: no initial handshake"; docker logs bifrost-e2e-client; exit 1; }
+[ "$ok" -eq 1 ] || { echo "FAIL: no initial handshake"; echo "-- server --"; docker logs bifrost-e2e-server; echo "-- client --"; docker logs bifrost-e2e-client; exit 1; }
 before="$hs"
 echo "OK: initial handshake (epoch $before)"
 

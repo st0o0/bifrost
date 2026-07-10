@@ -1,8 +1,1 @@
 * text=auto eol=lf
-
-*.sh text eol=lf
-*.bash text eol=lf
-*.bats text eol=lf
-tests/mocks/wg text eol=lf
-LICENSE text eol=lf
-NOTICE text eol=lf

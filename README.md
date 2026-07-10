@@ -40,6 +40,9 @@ the service `network_mode: "service:bifrost"`.
 | `BIFROST_RERESOLVE_INTERVAL` | `30` | Seconds between DDNS re-resolve runs (`0` disables) |
 | `BIFROST_HEALTH_MAX_HANDSHAKE_AGE` | `180` | Healthcheck threshold in seconds |
 
+If you change `BIFROST_INTERFACE` away from `wg0`, mount your config at the
+matching `/etc/wireguard/<name>.conf` (the example compose mounts `wg0.conf`).
+
 Requires `cap_add: NET_ADMIN`. `/dev/net/tun` is only needed for the userspace
 fallback (older kernels / hosts without the WireGuard module).
 

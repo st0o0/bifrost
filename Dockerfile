@@ -19,6 +19,7 @@ RUN apk add --no-cache \
 
 COPY --from=wggo /go/bin/wireguard /usr/bin/wireguard-go
 COPY src/ /opt/bifrost/
+COPY LICENSE NOTICE /opt/bifrost/
 RUN chmod +x /opt/bifrost/entrypoint.sh \
              /opt/bifrost/healthcheck.sh \
              /opt/bifrost/reresolve-dns.sh
