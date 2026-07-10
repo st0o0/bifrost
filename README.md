@@ -48,5 +48,5 @@ fallback (older kernels / hosts without the WireGuard module).
 
 ## License
 
-MIT (see `LICENSE`). Vendors the official WireGuard `reresolve-dns.sh`
-(GPL-2.0); see `NOTICE`.
+MIT (see `LICENSE`). The built image aggregates GPL-2.0 binaries
+(`wireguard-tools`, `wireguard-go`); see `NOTICE`.

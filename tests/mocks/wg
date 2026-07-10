@@ -1,6 +1,8 @@
 #!/bin/sh
-# Minimal mock of the `wg` command for tests.
-# Supports: wg show <iface> latest-handshakes  -> prints $WG_MOCK_HANDSHAKES
+# Mock `wg`: log `set` invocations to $WG_MOCK_LOG; answer latest-handshakes from $WG_MOCK_HANDSHAKES.
+if [ "$1" = "set" ]; then
+  printf '%s\n' "$*" >> "${WG_MOCK_LOG:-/dev/null}"
+fi
 if [ "$1" = "show" ] && [ "$3" = "latest-handshakes" ]; then
   printf '%s\n' "${WG_MOCK_HANDSHAKES:-}"
 fi
