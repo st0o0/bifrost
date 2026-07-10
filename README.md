@@ -175,11 +175,37 @@ matching `/etc/wireguard/<name>.conf`.
 
 ## Runtime requirements
 
-- `cap_add: [NET_ADMIN]` — always required.
-- `--device /dev/net/tun` (compose `devices:`) — only needed for the userspace
-  fallback (hosts without the in-kernel WireGuard module). Harmless to always
-  include.
-- No `SYS_MODULE`, no `/lib/modules` mount.
+WireGuard runs either **in the kernel** (fast, no TUN device) or **in userspace**
+(needs `/dev/net/tun`). What a container needs depends on which path it uses and
+whether it loads the kernel module itself:
+
+| Image | `NET_ADMIN` | `SYS_MODULE` | `/lib/modules` mount | `/dev/net/tun` | Data path |
+|---|:---:|:---:|:---:|:---:|---|
+| **bifrost** | ✅ | — | — | only w/o kernel module | kernel-first, userspace fallback |
+| linuxserver/wireguard | ✅ | ✅ | ✅ | — | kernel module (loads it) |
+| gluetun | ✅ | — | — | ✅ | userspace (TUN) |
+| wg-easy *(server)* | ✅ | ✅ | ✅ | — | kernel module |
+
+**When do I need `/dev/net/tun`?** Only when WireGuard runs in userspace. For
+bifrost that's *only* if the host has no in-kernel WireGuard module. WireGuard
+has shipped in the Linux kernel since 5.6 (2020), so on virtually any modern host
+**bifrost needs just `cap_add: [NET_ADMIN]`** — nothing else. Add `/dev/net/tun`
+for old kernels, some NAS boxes, or restricted/managed hosts (harmless to always
+include).
+
+**When do I need `SYS_MODULE` + `/lib/modules`?** Only for images that (re)load
+the kernel module themselves (linuxserver, wg-easy). bifrost never does — it uses
+the module if present, otherwise it falls back to userspace.
+
+Quick check — does your host already have in-kernel WireGuard?
+
+```bash
+if test -d /sys/module/wireguard || modprobe wireguard 2>/dev/null; then
+  echo "in-kernel WireGuard available — bifrost needs only NET_ADMIN"
+else
+  echo "no kernel module — add --device /dev/net/tun for the userspace fallback"
+fi
+```
 
 ## Image
 
