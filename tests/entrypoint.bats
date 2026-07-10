@@ -51,3 +51,19 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"BIFROST_CHECK_INTERVAL"* ]]
 }
+
+@test "entrypoint rejects invalid BIFROST_PROBE toggle" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_PROBE=maybe
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_PROBE"* ]]
+}
+
+@test "entrypoint rejects non-numeric BIFROST_PROBE_INTERVAL" {
+  export BIFROST_INTERFACE=wgdoesnotexist
+  export BIFROST_PROBE_INTERVAL=abc
+  run "$ROOT/src/entrypoint.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BIFROST_PROBE_INTERVAL"* ]]
+}

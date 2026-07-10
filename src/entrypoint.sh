@@ -23,6 +23,10 @@ bifrost_require_int  BIFROST_RECONNECT_RETRIES  "$RECONNECT_RETRIES"
 bifrost_require_int  BIFROST_RECONNECT_BACKOFF  "$RECONNECT_BACKOFF"
 bifrost_require_bool BIFROST_RESOLVE            "${BIFROST_RESOLVE:-on}"
 bifrost_require_bool BIFROST_RECONNECT          "${BIFROST_RECONNECT:-on}"
+bifrost_require_bool BIFROST_PROBE           "${BIFROST_PROBE:-off}"
+bifrost_require_int  BIFROST_PROBE_INTERVAL  "${BIFROST_PROBE_INTERVAL:-10}"
+bifrost_require_int  BIFROST_PROBE_FAILS     "${BIFROST_PROBE_FAILS:-3}"
+bifrost_require_int  BIFROST_PROBE_TIMEOUT   "${BIFROST_PROBE_TIMEOUT:-2}"
 bifrost_require_bool BIFROST_HEALTHCHECK        "${BIFROST_HEALTHCHECK:-on}"
 bifrost_require_int  BIFROST_HEALTH_STALE_AFTER "${BIFROST_HEALTH_STALE_AFTER:-180}"
 
@@ -71,12 +75,44 @@ recover() {
 }
 
 supervise() {
+    _pcheck=0
+    _ptargets=""
+    if bifrost_bool "${BIFROST_PROBE:-off}"; then
+        _ptargets="$(bifrost_probe_targets "$CONF")"
+        if [ -n "$_ptargets" ]; then
+            _pcheck=1
+            _tick="${BIFROST_PROBE_INTERVAL:-10}"
+            echo "bifrost: liveness probe on — targets: $(printf '%s ' $_ptargets)(all-down x${BIFROST_PROBE_FAILS:-3} triggers recovery)"
+        else
+            _tick="$CHECK_INTERVAL"
+            echo "bifrost: probe enabled but no pingable /32 targets — probe inactive"
+        fi
+    else
+        _tick="$CHECK_INTERVAL"
+    fi
+    _pfails=0
     while :; do
-        sleep "$CHECK_INTERVAL"
+        sleep "$_tick"
+        # fast path: liveness probe (only after the first handshake)
+        if [ "$_pcheck" -eq 1 ] && [ "$(bifrost_handshake_ts "$IFACE")" -gt 0 ]; then
+            if printf '%s\n' "$_ptargets" | bifrost_probe_once "${BIFROST_PROBE_TIMEOUT:-2}"; then
+                _pfails=0
+            else
+                _pfails=$(( _pfails + 1 ))
+                if [ "$_pfails" -ge "${BIFROST_PROBE_FAILS:-3}" ]; then
+                    echo "bifrost: probe — all targets down x${_pfails} — recovery"
+                    recover || true
+                    _pfails=0
+                    continue
+                fi
+            fi
+        fi
+        # fallback: handshake-age
         _age="$(bifrost_handshake_age "$IFACE")"
         if [ "$_age" -gt "$STALE_AFTER" ]; then
             echo "bifrost: handshake stale (${_age}s > ${STALE_AFTER}s) — recovery"
             recover || true
+            _pfails=0
         fi
     done
 }
