@@ -13,7 +13,9 @@ import (
 	"log"
 	"net"
 	"net/netip"
+	"os"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/st0o0/bifrost/internal/config"
@@ -40,11 +42,16 @@ type Tunnel struct {
 // Bring creates and configures the interface: kernel WireGuard first, falling
 // back to the embedded userspace implementation; then applies keys/peers via
 // wgctrl and sets up addresses/split-tunnel routes, and brings the link up.
-func Bring(cfg *config.Config, iface string) (*Tunnel, error) {
-	t := &Tunnel{iface: iface, cfg: cfg}
+func Bring(cfg *config.Config, iface string) (t *Tunnel, retErr error) {
+	t = &Tunnel{iface: iface, cfg: cfg}
 	if err := t.createLink(); err != nil {
 		return nil, fmt.Errorf("bifrost/wg: create link %s: %w", iface, err)
 	}
+	defer func() {
+		if retErr != nil {
+			_ = t.Close()
+		}
+	}()
 	ctrl, err := wgctrl.New()
 	if err != nil {
 		return nil, fmt.Errorf("bifrost/wg: open wgctrl: %w", err)
@@ -65,12 +72,26 @@ func Bring(cfg *config.Config, iface string) (*Tunnel, error) {
 func (t *Tunnel) createLink() error {
 	la := netlink.NewLinkAttrs()
 	la.Name = t.iface
-	if err := netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la}); err == nil {
+	err := netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la})
+	if err == nil {
 		log.Printf("bifrost/wg: %s: using kernel WireGuard", t.iface)
 		return nil
-	} else {
-		log.Printf("bifrost/wg: %s: kernel WireGuard unavailable (%v), falling back to userspace", t.iface, err)
 	}
+	if isExist(err) {
+		// Leftover link from a crashed prior run: delete it and retry once,
+		// rather than falling back to userspace.
+		log.Printf("bifrost/wg: %s: link already exists, deleting stale link and retrying", t.iface)
+		if stale, lerr := netlink.LinkByName(t.iface); lerr == nil {
+			if derr := netlink.LinkDel(stale); derr != nil {
+				return fmt.Errorf("delete stale link %s: %w", t.iface, derr)
+			}
+		}
+		if err = netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la}); err == nil {
+			log.Printf("bifrost/wg: %s: using kernel WireGuard", t.iface)
+			return nil
+		}
+	}
+	log.Printf("bifrost/wg: %s: kernel WireGuard unavailable (%v), falling back to userspace", t.iface, err)
 	// Kernel WireGuard unavailable; fall back to the userspace implementation.
 
 	tdev, err := tun.CreateTUN(t.iface, mtuOr(t.cfg, 1420))
@@ -188,6 +209,10 @@ func (t *Tunnel) setupNetwork() error {
 			return fmt.Errorf("parse address %s: %w", a, err)
 		}
 		if err := netlink.AddrAdd(link, addr); err != nil {
+			if isExist(err) {
+				log.Printf("bifrost/wg: %s: address %s already exists, ignoring", t.iface, a)
+				continue
+			}
 			return fmt.Errorf("add address %s: %w", a, err)
 		}
 	}
@@ -196,6 +221,10 @@ func (t *Tunnel) setupNetwork() error {
 		if err := netlink.LinkSetMTU(link, t.cfg.MTU); err != nil {
 			return fmt.Errorf("set MTU %d: %w", t.cfg.MTU, err)
 		}
+	}
+
+	if err := netlink.LinkSetUp(link); err != nil {
+		return fmt.Errorf("set link up: %w", err)
 	}
 
 	for _, p := range t.cfg.Peers {
@@ -210,14 +239,15 @@ func (t *Tunnel) setupNetwork() error {
 				Scope:     netlink.SCOPE_LINK,
 			}
 			if err := netlink.RouteAdd(route); err != nil {
+				if isExist(err) {
+					log.Printf("bifrost/wg: %s: route %s already exists, ignoring", t.iface, prefix)
+					continue
+				}
 				return fmt.Errorf("add route %s: %w", prefix, err)
 			}
 		}
 	}
 
-	if err := netlink.LinkSetUp(link); err != nil {
-		return fmt.Errorf("set link up: %w", err)
-	}
 	return nil
 }
 
@@ -253,6 +283,13 @@ func (t *Tunnel) Close() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// isExist reports whether err indicates the target of a netlink operation
+// (link, address, or route) already exists — i.e. it's safe to treat as
+// non-fatal rather than aborting bring-up.
+func isExist(err error) bool {
+	return errors.Is(err, os.ErrExist) || errors.Is(err, syscall.EEXIST)
 }
 
 // isDefaultRoute reports whether prefix is a default route (0.0.0.0/0 or
