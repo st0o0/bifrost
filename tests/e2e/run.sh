@@ -24,11 +24,11 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-wgimg() { docker run --rm -i --entrypoint wg "$IMAGE" "$@"; }
-put_conf() { docker volume create "$1" >/dev/null; docker run --rm -i --entrypoint sh -v "$1:/etc/wireguard" "$IMAGE" -c 'cat > /etc/wireguard/wg0.conf'; }
+bkey() { docker run --rm -i "$IMAGE" "$@"; }   # bifrost genkey / pubkey
+put_conf() { docker volume create "$1" >/dev/null; docker run --rm -i -v "$1:/etc/wireguard" alpine sh -c 'cat > /etc/wireguard/wg0.conf'; }
 
-s_priv="$(wgimg genkey)"; s_pub="$(printf '%s' "$s_priv" | wgimg pubkey)"
-c_priv="$(wgimg genkey)"; c_pub="$(printf '%s' "$c_priv" | wgimg pubkey)"
+s_priv="$(bkey genkey)"; s_pub="$(printf '%s' "$s_priv" | bkey pubkey)"
+c_priv="$(bkey genkey)"; c_pub="$(printf '%s' "$c_priv" | bkey pubkey)"
 
 put_conf "$SVOL" <<EOF
 [Interface]
@@ -57,14 +57,11 @@ docker network create --subnet "$SUBNET" "$NET" >/dev/null
 
 start_server() { # $1 ip
   docker run -d --rm --name bifrost-e2e-server --network "$NET" --ip "$1" \
-    --cap-add NET_ADMIN --device /dev/net/tun \
+    --cap-add NET_ADMIN --cap-add NET_RAW --device /dev/net/tun \
     -e BIFROST_RESOLVE=off -e BIFROST_RECONNECT=off -e BIFROST_HEALTHCHECK=off \
     -v "$SVOL:/etc/wireguard:ro" "$IMAGE" >/dev/null
 }
-client_handshake() {
-  docker exec bifrost-e2e-client wg show wg0 latest-handshakes 2>/dev/null \
-    | awk 'BEGIN{m=0}{if($2+0>m)m=$2}END{print m+0}'
-}
+client_handshake() { docker exec bifrost-e2e-client /bifrost handshake 2>/dev/null || echo 0; }
 
 run_scenario() {  # $1=label  $2..=extra client env flags
   local label="$1"; shift
@@ -72,7 +69,7 @@ run_scenario() {  # $1=label  $2..=extra client env flags
   start_server "$SERVER_IP1"
   # shellcheck disable=SC2086
   docker run -d --rm --name bifrost-e2e-client --network "$NET" --ip "$CLIENT_IP" \
-    --cap-add NET_ADMIN --device /dev/net/tun \
+    --cap-add NET_ADMIN --cap-add NET_RAW --device /dev/net/tun \
     -e BIFROST_CHECK_INTERVAL=3 -e BIFROST_STALE_AFTER=15 \
     -e BIFROST_RESOLVE_BACKOFF=2 -e BIFROST_RECONNECT_BACKOFF=2 \
     -e BIFROST_HEALTHCHECK=off "$@" \
@@ -102,7 +99,7 @@ run_probe_scenario() {
   echo "== [probe] starting server + client (probe on, STALE_AFTER=999) =="
   start_server "$SERVER_IP1"
   docker run -d --rm --name bifrost-e2e-client --network "$NET" --ip "$CLIENT_IP" \
-    --cap-add NET_ADMIN --device /dev/net/tun \
+    --cap-add NET_ADMIN --cap-add NET_RAW --device /dev/net/tun \
     -e BIFROST_STALE_AFTER=999 \
     -e BIFROST_PROBE=on -e BIFROST_PROBE_INTERVAL=2 -e BIFROST_PROBE_FAILS=2 -e BIFROST_PROBE_TIMEOUT=1 \
     -e BIFROST_RESOLVE=off -e BIFROST_RECONNECT=on -e BIFROST_RECONNECT_BACKOFF=2 -e BIFROST_RECONNECT_RETRIES=10 \
@@ -119,7 +116,7 @@ run_probe_scenario() {
   docker rm -f bifrost-e2e-server >/dev/null
   ok=0
   for _ in $(seq 1 20); do
-    docker logs bifrost-e2e-client 2>&1 | grep -q "probe — all targets down" && { ok=1; break; }
+    docker logs bifrost-e2e-client 2>&1 | grep -q "probe all targets down" && { ok=1; break; }
     sleep 2
   done
   [ "$ok" -eq 1 ] || { echo "[probe] FAIL: probe did not trigger recovery"; docker logs bifrost-e2e-client; return 1; }
