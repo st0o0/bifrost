@@ -18,7 +18,9 @@ is released and the advisory is published.
 
 ## Scope
 
-bifrost bundles `wireguard-tools` and a compiled `wireguard-go`. Vulnerabilities
-in those upstream projects should be reported to their maintainers; when a fixed
-version is available the image is rebuilt against it. The image is scanned
-weekly with Trivy and results appear in the repository's Security tab.
+bifrost is a single static Go binary (native netlink + wgctrl, with an embedded
+wireguard-go userspace fallback). Vulnerabilities in its Go module dependencies
+(e.g. `wgctrl`, `wireguard-go`, `vishvananda/netlink`, `pro-bing`) should be
+reported upstream; when a fix is available the image is rebuilt against it. The
+image is scanned weekly with Trivy and results appear in the repository's
+Security tab.
