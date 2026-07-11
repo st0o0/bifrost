@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/st0o0/bifrost/internal/config"
-	"github.com/st0o0/bifrost/internal/health"
 	"github.com/st0o0/bifrost/internal/wg"
 	"golang.zx2c4.com/wireguard/wgctrl"
 )
@@ -27,7 +26,7 @@ func runHealthcheck() int {
 	}
 	defer c.Close()
 	newest := wg.NewestHandshakeVia(c, s.Interface)
-	if health.Healthy(newest, time.Now(), s.HealthStaleAfter) {
+	if healthy(newest, time.Now(), s.HealthStaleAfter) {
 		return 0
 	}
 	fmt.Fprintln(os.Stderr, "bifrost: tunnel unhealthy")

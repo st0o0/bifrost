@@ -8,14 +8,6 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func genKey() string {
-	k, err := wgtypes.GeneratePrivateKey()
-	if err != nil {
-		return ""
-	}
-	return k.String()
-}
-
 func pubKey(r io.Reader) (string, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
@@ -28,11 +20,16 @@ func pubKey(r io.Reader) (string, error) {
 	return k.PublicKey().String(), nil
 }
 
-// runKeyCmd handles the genkey/pubkey subcommands; returns (handled, exitCode).
-func runKeyCmd(cmd string, stdin io.Reader, stdout io.Writer) (bool, int) {
+// runCmd handles the platform-independent subcommands (genkey, pubkey);
+// returns (handled, exitCode).
+func runCmd(cmd string, stdin io.Reader, stdout io.Writer) (bool, int) {
 	switch cmd {
 	case "genkey":
-		fmt.Fprintln(stdout, genKey())
+		k, err := wgtypes.GeneratePrivateKey()
+		if err != nil {
+			return true, 1
+		}
+		fmt.Fprintln(stdout, k.String())
 		return true, 0
 	case "pubkey":
 		p, err := pubKey(stdin)

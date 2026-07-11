@@ -78,12 +78,8 @@ func (e *envReader) intMin(name string, def, min int) int {
 		return def
 	}
 	n, err := strconv.Atoi(v)
-	if err != nil || n < 0 {
-		e.setErr(fmt.Errorf("%s must be a non-negative integer, got %q", name, v))
-		return def
-	}
-	if n < min {
-		e.setErr(fmt.Errorf("%s must be >= %d, got %d", name, min, n))
+	if err != nil || n < min {
+		e.setErr(fmt.Errorf("%s must be an integer >= %d, got %q", name, min, v))
 		return def
 	}
 	return n
