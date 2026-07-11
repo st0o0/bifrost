@@ -1,7 +1,0 @@
-#!/bin/sh
-# Mock ping: exit 0 only if the last arg (the target) is listed in $PING_MOCK_UP.
-for _t in "$@"; do :; done
-case " ${PING_MOCK_UP:-} " in
-  *" $_t "*) exit 0 ;;
-esac
-exit 1

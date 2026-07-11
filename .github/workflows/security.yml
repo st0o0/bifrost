@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - 'Dockerfile'
-      - 'src/**'
+      - 'go.mod'
+      - 'go.sum'
       - '.github/workflows/security.yml'
   schedule:
     - cron: '0 6 * * 1'   # weekly — catch new CVEs in the base image/packages
