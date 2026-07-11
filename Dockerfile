@@ -1,11 +1,12 @@
 # syntax=docker/dockerfile:1
 
 FROM golang:1.26-alpine AS build
+ARG VERSION=dev
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /bifrost ./cmd/bifrost
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /bifrost ./cmd/bifrost
 
 FROM scratch AS runtime
 LABEL org.opencontainers.image.title="bifrost" \
