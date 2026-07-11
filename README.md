@@ -13,7 +13,10 @@ namespace**. The Norse rainbow bridge between your networks.
 services:
   bifrost:
     image: ghcr.io/st0o0/bifrost:latest
+    restart: unless-stopped
     cap_add: [NET_ADMIN]
+    devices:
+      - /dev/net/tun:/dev/net/tun   # only for hosts without kernel WireGuard (harmless to keep)
     volumes:
       - ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
     ports:
@@ -83,6 +86,17 @@ docker inspect --format '{{.State.Health.Status}}' bifrost   # healthy / unhealt
 Publish the ports of any tunneled service on the **bifrost** container, and give
 the service `network_mode: "service:bifrost"`.
 
+### Key & CLI helpers
+
+The image doubles as a tiny WireGuard key toolbox — no `wireguard-tools` needed
+on the host:
+
+```bash
+docker run --rm ghcr.io/st0o0/bifrost genkey > private.key      # generate a private key
+docker run --rm -i ghcr.io/st0o0/bifrost pubkey < private.key   # derive its public key
+docker run --rm ghcr.io/st0o0/bifrost version                   # print the release version
+```
+
 ### Split tunnel (reach a few internal hosts)
 
 Route only specific hosts/subnets through the tunnel; everything else stays
@@ -133,6 +147,30 @@ Default escalation ordering: **resolve at 135 s** → **healthcheck flips at
 
 All configuration is via environment variables (see `.env.example`).
 
+### Interface & monitoring
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BIFROST_INTERFACE` | `wg0` | Config/interface name → `/etc/wireguard/<name>.conf` |
+| `BIFROST_CHECK_INTERVAL` | `30` | How often to check handshake freshness (seconds, ≥ 1) |
+| `BIFROST_STALE_AFTER` | `135` | Handshake age (seconds) that triggers a recovery episode |
+
+### Recovery — stage 1: resolve (gentle, in place)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BIFROST_RESOLVE` | `on` | Enable the resolve stage |
+| `BIFROST_RESOLVE_RETRIES` | `5` | Attempts per episode |
+| `BIFROST_RESOLVE_BACKOFF` | `5` | Base backoff (seconds, exponential, cap 60) |
+
+### Recovery — stage 2: reconnect (active native interface down/up)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BIFROST_RECONNECT` | `on` | Enable the reconnect stage |
+| `BIFROST_RECONNECT_RETRIES` | `5` | Attempts per episode |
+| `BIFROST_RECONNECT_BACKOFF` | `5` | Base backoff (seconds, exponential, cap 60) |
+
 ### Liveness probe (optional, faster detection)
 
 Recovery normally triggers on handshake age, whose floor is ~135 s (WireGuard
@@ -161,30 +199,6 @@ for a full-tunnel setup set `BIFROST_PROBE_HOST` explicitly. At least one target
 must answer ICMP — otherwise every round reads "all down"
 and (with the reconnect stage active) flaps a healthy tunnel. On first enable,
 set `BIFROST_PROBE_HOST` to your server's tunnel IP, which reliably answers.
-
-### Interface & monitoring
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `BIFROST_INTERFACE` | `wg0` | Config/interface name → `/etc/wireguard/<name>.conf` |
-| `BIFROST_CHECK_INTERVAL` | `30` | How often to check handshake freshness (seconds, ≥ 1) |
-| `BIFROST_STALE_AFTER` | `135` | Handshake age (seconds) that triggers a recovery episode |
-
-### Recovery — stage 1: resolve (gentle, in place)
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `BIFROST_RESOLVE` | `on` | Enable the resolve stage |
-| `BIFROST_RESOLVE_RETRIES` | `5` | Attempts per episode |
-| `BIFROST_RESOLVE_BACKOFF` | `5` | Base backoff (seconds, exponential, cap 60) |
-
-### Recovery — stage 2: reconnect (active native interface down/up)
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `BIFROST_RECONNECT` | `on` | Enable the reconnect stage |
-| `BIFROST_RECONNECT_RETRIES` | `5` | Attempts per episode |
-| `BIFROST_RECONNECT_BACKOFF` | `5` | Base backoff (seconds, exponential, cap 60) |
 
 ### Healthcheck
 
