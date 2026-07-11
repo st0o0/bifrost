@@ -2,6 +2,17 @@ bifrost
 Copyright (c) 2026 st0o0
 Licensed under the MIT License (see LICENSE).
 
-The distributed container image aggregates GPL-2.0 software from the Alpine
-package wireguard-tools and the built-from-source wireguard-go. These are
-combined by mere aggregation; each retains its own license.
+bifrost is a pure-Go static binary; the distributed container image bundles
+no third-party GPL software. Its Go module dependencies are permissively
+licensed (MIT/Apache-2.0), including:
+
+  - golang.zx2c4.com/wireguard/wgctrl (MIT) — native kernel WireGuard control
+    via netlink
+  - golang.zx2c4.com/wireguard (MIT) — embedded wireguard-go userspace
+    fallback device
+  - github.com/vishvananda/netlink (Apache-2.0) — Linux netlink interface
+    management
+  - github.com/prometheus-community/pro-bing (MIT) — native ICMP liveness
+    probe
+
+See each module's repository for its full license text.

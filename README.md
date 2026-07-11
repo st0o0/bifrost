@@ -31,21 +31,24 @@ services:
 
 - **Self-healing, two-stage recovery.** A supervisor watches handshake
   freshness and, on a stale tunnel, first re-resolves the endpoint in place
-  (`wg set`, no interface flap), then — only if that fails — actively rebuilds
-  the tunnel (`wg-quick down/up`). Both stages retry with exponential backoff.
+  (native netlink peer-endpoint update, no interface flap), then — only if
+  that fails — actively rebuilds the tunnel (native interface down/up). Both
+  stages retry with exponential backoff.
 - **DDNS-native.** The endpoint may be a hostname; bifrost re-resolves it when
   the peer's IP changes. Dependents on `network_mode: service:bifrost` never
   lose their network namespace during recovery.
-- **Kernel-first, userspace fallback.** Uses the in-kernel WireGuard when
-  available; otherwise a bundled `wireguard-go`. No `SYS_MODULE`, no
+- **Kernel-first, userspace fallback.** Talks to the in-kernel WireGuard
+  natively over netlink (via `wgctrl`) when available; otherwise falls back to
+  an embedded `wireguard-go` userspace device. No `SYS_MODULE`, no
   `/lib/modules` mount, no PUID/PGID, no s6.
 - **Split-tunnel friendly.** No forced killswitch — route only the subnets your
   `AllowedIPs` list, everything else goes direct.
 - **Fully configurable & toggleable.** Every threshold, retry count, and backoff
   is an env var; the resolve stage, the reconnect stage, and the healthcheck can
   each be turned off.
-- **Small & multi-arch.** ~30 MB Alpine image for `linux/amd64` and
-  `linux/arm64`.
+- **Single static Go binary, tiny image.** A ~7.5 MB `scratch` image for
+  `linux/amd64` and `linux/arm64` — no shell, no coreutils, no
+  `wireguard-tools` bundled. Just the binary, `LICENSE`, and `NOTICE`.
 
 ## Why
 
@@ -109,10 +112,10 @@ newest handshake every `BIFROST_CHECK_INTERVAL`. Once it is older than
 `BIFROST_STALE_AFTER`, a **recovery episode** starts and escalates:
 
 ```
-handshake age >  STALE_AFTER  ──▶  Stage 1: RESOLVE   (wg set endpoint, ×RETRIES, backoff)
+handshake age >  STALE_AFTER  ──▶  Stage 1: RESOLVE   (set peer endpoint natively, ×RETRIES, backoff)
         │  recovered? ──────────▶  done
         ▼  exhausted
-                                   Stage 2: RECONNECT (wg-quick down/up, ×RETRIES, backoff)
+                                   Stage 2: RECONNECT (bring interface down/up natively, ×RETRIES, backoff)
         │  recovered? ──────────▶  done
         ▼  exhausted
                                    log + keep monitoring (re-tries next tick)
@@ -147,6 +150,10 @@ fires first (probe or handshake age) starts recovery.
 | `BIFROST_PROBE_TIMEOUT` | `2` | Per-ping timeout (seconds) |
 | `BIFROST_PROBE_HOST` | *(AllowedIPs)* | Explicit target(s); default derives `/32`+`/128` hosts from AllowedIPs |
 
+The probe sends raw ICMP echo requests natively (no `ping` binary), which
+requires the `NET_RAW` capability. Add `cap_add: [NET_RAW]` alongside
+`NET_ADMIN` whenever `BIFROST_PROBE=on`; it is not needed otherwise.
+
 Targets are pinged **inside** the tunnel; a round counts as down only when
 **every** target fails, so a single offline host never triggers recovery — only
 a genuinely dead tunnel does. Ranges and `0.0.0.0/0` are skipped (not pingable);
@@ -171,7 +178,7 @@ set `BIFROST_PROBE_HOST` to your server's tunnel IP, which reliably answers.
 | `BIFROST_RESOLVE_RETRIES` | `5` | Attempts per episode |
 | `BIFROST_RESOLVE_BACKOFF` | `5` | Base backoff (seconds, exponential, cap 60) |
 
-### Recovery — stage 2: reconnect (active `wg-quick down/up`)
+### Recovery — stage 2: reconnect (active native interface down/up)
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -204,12 +211,12 @@ WireGuard runs either **in the kernel** (fast, no TUN device) or **in userspace*
 (needs `/dev/net/tun`). What a container needs depends on which path it uses and
 whether it loads the kernel module itself:
 
-| Image | `NET_ADMIN` | `SYS_MODULE` | `/lib/modules` mount | `/dev/net/tun` | Data path |
-|---|:---:|:---:|:---:|:---:|---|
-| **bifrost** | ✅ | — | — | only w/o kernel module | kernel-first, userspace fallback |
-| linuxserver/wireguard | ✅ | ✅ | ✅ | — | kernel module (loads it) |
-| gluetun | ✅ | — | — | ✅ | userspace (TUN) |
-| wg-easy *(server)* | ✅ | ✅ | ✅ | — | kernel module |
+| Image | `NET_ADMIN` | `NET_RAW` | `SYS_MODULE` | `/lib/modules` mount | `/dev/net/tun` | Data path |
+|---|:---:|:---:|:---:|:---:|:---:|---|
+| **bifrost** | ✅ | only w/ probe | — | — | only w/o kernel module | kernel-first, userspace fallback |
+| linuxserver/wireguard | ✅ | — | ✅ | ✅ | — | kernel module (loads it) |
+| gluetun | ✅ | — | — | — | ✅ | userspace (TUN) |
+| wg-easy *(server)* | ✅ | — | ✅ | ✅ | — | kernel module |
 
 **When do I need `/dev/net/tun`?** Only when WireGuard runs in userspace. For
 bifrost that's *only* if the host has no in-kernel WireGuard module. WireGuard
@@ -217,6 +224,11 @@ has shipped in the Linux kernel since 5.6 (2020), so on virtually any modern hos
 **bifrost needs just `cap_add: [NET_ADMIN]`** — nothing else. Add `/dev/net/tun`
 for old kernels, some NAS boxes, or restricted/managed hosts (harmless to always
 include).
+
+**When do I need `NET_RAW`?** Only when the liveness probe is enabled
+(`BIFROST_PROBE=on`); bifrost sends raw ICMP echo requests natively to check
+tunnel reachability. Leave it off if you don't use the probe — recovery still
+works off handshake age alone.
 
 **When do I need `SYS_MODULE` + `/lib/modules`?** Only for images that (re)load
 the kernel module themselves (linuxserver, wg-easy). bifrost never does — it uses
@@ -253,15 +265,17 @@ fi
 ## Development
 
 ```bash
-# unit tests (bats) via a throwaway container
-docker run --rm -v "$PWD:/code" -w /code alpine:3.20 sh -c \
-  'apk add --no-cache bats bash >/dev/null && chmod +x tests/mocks/wg src/*.sh && bats tests/*.bats'
+# unit tests
+go test ./...
 
-# lint
-docker run --rm -v "$PWD:/code" -w /code koalaman/shellcheck:stable src/*.sh tests/e2e/run.sh
+# vet + lint (golangci-lint v2)
+go vet ./...
+golangci-lint run
+
+# Dockerfile lint
 docker run --rm -i hadolint/hadolint < Dockerfile
 
-# end-to-end tunnel test (needs a Linux Docker host; ~minutes)
+# build the scratch image + end-to-end tunnel test (needs a Linux Docker host; ~minutes)
 docker build -t bifrost:ci . && ./tests/e2e/run.sh
 ```
 
@@ -270,5 +284,6 @@ releases and the GHCR image are cut automatically by release-please.
 
 ## License
 
-MIT (see [`LICENSE`](LICENSE)). The built image aggregates GPL-2.0 binaries
-(`wireguard-tools`, `wireguard-go`); see [`NOTICE`](NOTICE).
+MIT (see [`LICENSE`](LICENSE)). bifrost is a pure-Go static binary; the built
+image bundles no third-party GPL binaries. Its Go module dependencies are
+permissively licensed (MIT/Apache-2.0); see [`NOTICE`](NOTICE).
