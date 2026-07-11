@@ -79,13 +79,24 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 	}
 	st := probe.NewState(s.ProbeFails)
 
+	// everHandshaked latches true the first time NewestHandshake() is
+	// observed to be non-zero. Unlike the instantaneous handshake check, it
+	// never resets — so a reconnect that leaves the handshake transiently
+	// zero (e.g. DDNS not yet propagated) does not permanently silence
+	// either trigger.
+	var everHandshaked bool
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-probeC:
-			if d.Ctrl.NewestHandshake().IsZero() {
-				continue // startup guard: only after first handshake
+			hs := d.Ctrl.NewestHandshake()
+			if !hs.IsZero() {
+				everHandshaked = true
+			}
+			if !everHandshaked {
+				continue // startup guard: only after the first-ever handshake
 			}
 			down := probe.AllDown(targets, s.ProbeTimeout, d.Pinger)
 			if st.Round(down) {
@@ -93,10 +104,11 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			}
 		case <-checkC:
 			newest := d.Ctrl.NewestHandshake()
+			if !newest.IsZero() {
+				everHandshaked = true
+			}
 			if newest.IsZero() || now().Sub(newest) > s.StaleAfter {
-				if !newest.IsZero() {
-					recover("handshake stale")
-				}
+				recover("handshake stale")
 			}
 		}
 	}
