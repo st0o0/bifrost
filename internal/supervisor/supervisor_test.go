@@ -275,6 +275,96 @@ func TestEmptyTargetsDisablesProbe(t *testing.T) {
 	waitDone(t, done)
 }
 
+// TestReconnectDoesNotGoDormant simulates the DDNS-recovery scenario from
+// I-1: the handshake starts non-zero (latching everHandshaked), then a
+// reconnect leaves it transiently zero (e.g. the rebuilt interface hasn't
+// re-handshaked yet because DDNS hasn't propagated). A subsequent check tick
+// must still trigger recovery — the loop must not go permanently dormant
+// just because NewestHandshake() is momentarily zero.
+func TestReconnectDoesNotGoDormant(t *testing.T) {
+	s := baseSettings()
+	s.Probe = false
+	s.StaleAfter = time.Minute
+
+	ctrl := newFakeCtrl(time.Now()) // non-zero: latches everHandshaked
+	checkTicks := make(chan time.Time)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	d := Deps{
+		Ctrl:       ctrl,
+		Pinger:     fakePinger{up: true},
+		CheckTicks: checkTicks,
+	}
+	done := runInBackground(ctx, d, s, nil)
+
+	// Simulate a post-reconnect device that hasn't re-handshaked yet: the
+	// handshake goes back to zero, as it would right after Reconnect()
+	// rebuilds the interface.
+	ctrl.mu.Lock()
+	ctrl.hs = time.Time{}
+	ctrl.mu.Unlock()
+
+	checkTicks <- time.Now()
+	awaitRecovery(t, ctrl)
+
+	cancel()
+	waitDone(t, done)
+
+	resolveN, reconnectN := ctrl.counts()
+	if resolveN+reconnectN == 0 {
+		t.Errorf("no recovery attempts observed after zero handshake post-reconnect, want at least one (loop must not go dormant)")
+	}
+}
+
+// TestProbeReArmsAfterTransientZeroHandshake ensures that once the
+// everHandshaked latch is set, a later period where NewestHandshake() reads
+// zero (e.g. right after a reconnect) does not suppress the probe trigger:
+// the probe must still recover on consecutive down rounds.
+func TestProbeReArmsAfterTransientZeroHandshake(t *testing.T) {
+	s := baseSettings()
+	s.Probe = true
+	s.ProbeFails = 2
+	targets := []string{"10.0.0.1"}
+
+	ctrl := newFakeCtrl(time.Now().Add(-time.Hour)) // non-zero: latches everHandshaked
+	probeTicks := make(chan time.Time)
+	checkTicks := make(chan time.Time) // never fed; keeps the stale trigger silent
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	d := Deps{
+		Ctrl:       ctrl,
+		Pinger:     fakePinger{up: false}, // every target down
+		ProbeTicks: probeTicks,
+		CheckTicks: checkTicks,
+	}
+	done := runInBackground(ctx, d, s, targets)
+
+	// First probe tick observes the non-zero handshake, setting the latch.
+	probeTicks <- time.Now()
+
+	// Now simulate the transient zero window right after a reconnect.
+	ctrl.mu.Lock()
+	ctrl.hs = time.Time{}
+	ctrl.mu.Unlock()
+
+	// Feed the remaining down rounds; the probe must not be re-suppressed by
+	// the transient zero handshake now that the latch is set.
+	for i := 1; i < s.ProbeFails; i++ {
+		probeTicks <- time.Now()
+	}
+	awaitRecovery(t, ctrl)
+
+	cancel()
+	waitDone(t, done)
+
+	resolveN, reconnectN := ctrl.counts()
+	if resolveN+reconnectN == 0 {
+		t.Errorf("no recovery attempts observed, want probe to re-arm despite transient zero handshake")
+	}
+}
+
 // TestCtxCancelStopsLoop verifies Run returns promptly once ctx is cancelled,
 // with no ticks delivered at all.
 func TestCtxCancelStopsLoop(t *testing.T) {
