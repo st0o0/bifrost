@@ -20,8 +20,9 @@ linters:
         linters:
           - staticcheck
         text: "SA4000:"
-      # ST1005 stylistic nit: capitalized error strings here are surfaced
-      # directly as user-facing config errors, not wrapped further.
+      # ST1005 stylistic nit: these error strings are capitalized because they
+      # start with WireGuard config-field names kept verbatim (e.g. "ListenPort",
+      # "MTU", "Endpoint", "PersistentKeepalive").
       - path: internal/config/conf\.go
         linters:
           - staticcheck

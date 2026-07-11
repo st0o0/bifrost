@@ -4,15 +4,16 @@ Thanks for your interest in bifrost!
 
 ## Development
 
-Everything runs in Docker — no local toolchain required.
+bifrost is a Go module. The logic packages test anywhere; the Linux-only
+packages (`internal/wg`, the ICMP pinger, `main`) build on Linux.
 
 ```bash
-# unit tests (bats)
-docker run --rm -v "$PWD:/code" -w /code alpine:3.20 sh -c \
-  'apk add --no-cache bats bash >/dev/null && chmod +x tests/mocks/wg src/*.sh && bats tests/*.bats'
+# tests + vet (Go)
+go test ./...
+go vet ./...
 
 # lint
-docker run --rm -v "$PWD:/code" -w /code koalaman/shellcheck:stable src/*.sh tests/e2e/run.sh
+golangci-lint run          # golangci-lint v2
 docker run --rm -i hadolint/hadolint < Dockerfile
 
 # build + end-to-end tunnel test (needs a Linux Docker host; ~minutes)
@@ -21,14 +22,14 @@ docker build -t bifrost:ci . && ./tests/e2e/run.sh
 
 ## Pull requests
 
-- Branch from `main` and open a PR — CI (lint, unit, build, e2e) runs on pull
+- Branch from `main` and open a PR — CI (test, lint, build, e2e) runs on pull
   requests.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `docs:`, `ci:`, `chore:`, …); commitlint enforces this and
   release-please derives the version and changelog from them.
 - Keep changes focused and add or update tests for any behavior change.
-- Shell scripts are POSIX `sh` (except the bats tests) and must pass
-  `shellcheck`; the `Dockerfile` must pass `hadolint`.
+- Go code must pass `go vet` and `golangci-lint`; the `Dockerfile` must pass
+  `hadolint`.
 
 ## Reporting bugs / requesting features
 
