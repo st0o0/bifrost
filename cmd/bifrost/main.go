@@ -16,8 +16,16 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
-		os.Exit(runHealthcheck())
+	if len(os.Args) > 1 {
+		if handled, code := runKeyCmd(os.Args[1], os.Stdin, os.Stdout); handled {
+			os.Exit(code)
+		}
+		switch os.Args[1] {
+		case "healthcheck":
+			os.Exit(runHealthcheck())
+		case "handshake":
+			os.Exit(runHandshake())
+		}
 	}
 
 	s, err := config.LoadSettings(os.Getenv)
