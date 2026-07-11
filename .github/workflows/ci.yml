@@ -7,12 +7,12 @@ name: ci
 on:
   pull_request:
     paths:
-      - 'src/**'
-      - 'tests/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
       - 'Dockerfile'
-      - '.dockerignore'
-      - '.hadolint.yaml'
-      - '.shellcheckrc'
+      - 'tests/**'
       - '.github/workflows/ci.yml'
 
 permissions:
@@ -24,30 +24,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test ./...
+
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: shellcheck
-        uses: ludeeus/action-shellcheck@2.0.0
+      - uses: actions/setup-go@v5
         with:
-          scandir: "."
+          go-version: '1.26'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.12
       - name: hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
           config: .hadolint.yaml
-
-  unit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install bats
-        run: sudo apt-get update && sudo apt-get install -y bats
-      - name: Make scripts executable
-        run: chmod +x tests/mocks/wg src/entrypoint.sh src/healthcheck.sh src/resolve.sh
-      - name: Run unit tests
-        run: bats tests/libhelpers.bats tests/lib.bats tests/healthcheck.bats tests/resolve.bats tests/entrypoint.bats
 
   build:
     runs-on: ubuntu-latest
@@ -65,8 +69,9 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Smoke test
         run: |
-          docker run --rm --entrypoint sh bifrost:ci -c \
-            'command -v wg && command -v wg-quick && command -v wireguard-go && ls /opt/bifrost'
+          out="$(docker run --rm bifrost:ci genkey)"
+          test -n "$out"
+          echo "genkey ok: $out"
           code=0
           docker run --rm bifrost:ci || code=$?
           test "$code" -eq 1
@@ -74,7 +79,7 @@ jobs:
   # e2e is the slow job (~minutes) — only run it once the cheap checks pass.
   # The image build is a cache hit from the build job.
   e2e:
-    needs: [lint, unit, build]
+    needs: [test, lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

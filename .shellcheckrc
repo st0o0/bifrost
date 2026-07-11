@@ -1,3 +1,0 @@
-# Scripts source a sibling lib.sh via a runtime-resolved $DIR path, which
-# shellcheck cannot statically follow. That is intentional and safe.
-disable=SC1091

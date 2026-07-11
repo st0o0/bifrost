@@ -1,0 +1,28 @@
+version: "2"
+
+# Minimal config: defaults are otherwise fine. The default preset excludes were
+# removed in golangci-lint v2, so re-enable the same "well-known low-signal
+# findings" presets v1 shipped by default (unchecked Close()/Flush() on defer,
+# capitalized error strings in legacy code, etc.) instead of hand-rolling
+# per-rule exclusions.
+linters:
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # SA4000 false positive: State.Round(bool) has side effects (mutates an
+      # internal counter), so calling it twice via `a() || a()` is an
+      # intentional double-tick, not an accidental identical-expression typo.
+      - path: internal/probe/probe_test\.go
+        linters:
+          - staticcheck
+        text: "SA4000:"
+      # ST1005 stylistic nit: capitalized error strings here are surfaced
+      # directly as user-facing config errors, not wrapped further.
+      - path: internal/config/conf\.go
+        linters:
+          - staticcheck
+        text: "ST1005:"
