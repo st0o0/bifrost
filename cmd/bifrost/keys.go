@@ -8,6 +8,9 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+// version is stamped at build time via -ldflags "-X main.version=...".
+var version = "dev"
+
 func pubKey(r io.Reader) (string, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
@@ -20,8 +23,8 @@ func pubKey(r io.Reader) (string, error) {
 	return k.PublicKey().String(), nil
 }
 
-// runCmd handles the platform-independent subcommands (genkey, pubkey);
-// returns (handled, exitCode).
+// runCmd handles the platform-independent subcommands (genkey, pubkey,
+// version); returns (handled, exitCode).
 func runCmd(cmd string, stdin io.Reader, stdout io.Writer) (bool, int) {
 	switch cmd {
 	case "genkey":
@@ -37,6 +40,9 @@ func runCmd(cmd string, stdin io.Reader, stdout io.Writer) (bool, int) {
 			return true, 1
 		}
 		fmt.Fprintln(stdout, p)
+		return true, 0
+	case "version":
+		fmt.Fprintln(stdout, version)
 		return true, 0
 	}
 	return false, 0
