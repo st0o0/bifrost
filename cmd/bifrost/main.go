@@ -16,8 +16,11 @@ import (
 )
 
 func main() {
+	log.SetPrefix("bifrost: ")
+	log.SetFlags(log.LstdFlags | log.Lmsgprefix)
+
 	if len(os.Args) > 1 {
-		if handled, code := runKeyCmd(os.Args[1], os.Stdin, os.Stdout); handled {
+		if handled, code := runCmd(os.Args[1], os.Stdin, os.Stdout); handled {
 			os.Exit(code)
 		}
 		switch os.Args[1] {
@@ -30,20 +33,20 @@ func main() {
 
 	s, err := config.LoadSettings(os.Getenv)
 	if err != nil {
-		log.Fatalf("bifrost: %v", err)
+		log.Fatal(err)
 	}
 	confPath := "/etc/wireguard/" + s.Interface + ".conf"
 	f, err := os.Open(confPath)
 	if err != nil {
-		log.Fatalf("bifrost: config not found at %s — mount your WireGuard .conf there", confPath)
+		log.Fatalf("config not found at %s — mount your WireGuard .conf there", confPath)
 	}
 	cfg, err := config.ParseConfig(f)
 	f.Close()
 	if err != nil {
-		log.Fatalf("bifrost: %v", err)
+		log.Fatal(err)
 	}
 	if err := cfg.Validate(); err != nil {
-		log.Fatalf("bifrost: %v", err)
+		log.Fatal(err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -51,12 +54,12 @@ func main() {
 
 	tun, err := wg.Bring(cfg, s.Interface)
 	if err != nil {
-		log.Fatalf("bifrost: bringing up %s: %v", s.Interface, err)
+		log.Fatalf("bringing up %s: %v", s.Interface, err)
 	}
 	defer tun.Close()
 
 	if !s.Resolve && !s.Reconnect {
-		log.Print("bifrost: recovery disabled (resolve and reconnect both off)")
+		log.Print("recovery disabled (resolve and reconnect both off)")
 		<-ctx.Done()
 		return
 	}

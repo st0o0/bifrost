@@ -40,24 +40,24 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 		Reconnect: s.Reconnect, ReconnectRetries: s.ReconnectRetries, ReconnectBackoff: s.ReconnectBackoff,
 		OnAttempt: func(stage string, a int, err error) {
 			if err != nil {
-				log.Printf("bifrost: %s attempt %d: %v", stage, a, err)
+				log.Printf("%s attempt %d: %v", stage, a, err)
 			} else {
-				log.Printf("bifrost: %s attempt %d", stage, a)
+				log.Printf("%s attempt %d", stage, a)
 			}
 		},
 	}
-	recover := func(reason string) {
-		log.Printf("bifrost: %s — recovery", reason)
+	recoverNow := func(reason string) {
+		log.Printf("%s — recovery", reason)
 		if recovery.Recover(ctx, d.Ctrl, opts) {
-			log.Print("bifrost: recovered")
+			log.Print("recovered")
 		} else {
-			log.Print("bifrost: recovery exhausted; will retry")
+			log.Print("recovery exhausted; will retry")
 		}
 	}
 
 	probeOn := s.Probe && len(targets) > 0
 	if s.Probe && len(targets) == 0 {
-		log.Print("bifrost: probe enabled but no targets — probe inactive")
+		log.Print("probe enabled but no targets — probe inactive")
 	}
 
 	checkC := d.CheckTicks
@@ -75,7 +75,7 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			defer pt.Stop()
 			probeC = pt.C
 		}
-		log.Printf("bifrost: liveness probe on — %v", targets)
+		log.Printf("liveness probe on — %v", targets)
 	}
 	st := probe.NewState(s.ProbeFails)
 
@@ -100,7 +100,7 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			}
 			down := probe.AllDown(targets, s.ProbeTimeout, d.Pinger)
 			if st.Round(down) {
-				recover("probe all targets down")
+				recoverNow("probe all targets down")
 			}
 		case <-checkC:
 			newest := d.Ctrl.NewestHandshake()
@@ -108,7 +108,7 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 				everHandshaked = true
 			}
 			if newest.IsZero() || now().Sub(newest) > s.StaleAfter {
-				recover("handshake stale")
+				recoverNow("handshake stale")
 			}
 		}
 	}

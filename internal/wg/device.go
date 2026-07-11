@@ -45,7 +45,7 @@ type Tunnel struct {
 func Bring(cfg *config.Config, iface string) (t *Tunnel, retErr error) {
 	t = &Tunnel{iface: iface, cfg: cfg}
 	if err := t.createLink(); err != nil {
-		return nil, fmt.Errorf("bifrost/wg: create link %s: %w", iface, err)
+		return nil, fmt.Errorf("create link %s: %w", iface, err)
 	}
 	defer func() {
 		if retErr != nil {
@@ -54,14 +54,14 @@ func Bring(cfg *config.Config, iface string) (t *Tunnel, retErr error) {
 	}()
 	ctrl, err := wgctrl.New()
 	if err != nil {
-		return nil, fmt.Errorf("bifrost/wg: open wgctrl: %w", err)
+		return nil, fmt.Errorf("open wgctrl: %w", err)
 	}
 	t.ctrl = ctrl
 	if err := t.configure(); err != nil {
-		return nil, fmt.Errorf("bifrost/wg: configure %s: %w", iface, err)
+		return nil, fmt.Errorf("configure %s: %w", iface, err)
 	}
 	if err := t.setupNetwork(); err != nil {
-		return nil, fmt.Errorf("bifrost/wg: setup network %s: %w", iface, err)
+		return nil, fmt.Errorf("setup network %s: %w", iface, err)
 	}
 	return t, nil
 }
@@ -74,24 +74,24 @@ func (t *Tunnel) createLink() error {
 	la.Name = t.iface
 	err := netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la})
 	if err == nil {
-		log.Printf("bifrost/wg: %s: using kernel WireGuard", t.iface)
+		log.Printf("%s: using kernel WireGuard", t.iface)
 		return nil
 	}
 	if isExist(err) {
 		// Leftover link from a crashed prior run: delete it and retry once,
 		// rather than falling back to userspace.
-		log.Printf("bifrost/wg: %s: link already exists, deleting stale link and retrying", t.iface)
+		log.Printf("%s: link already exists, deleting stale link and retrying", t.iface)
 		if stale, lerr := netlink.LinkByName(t.iface); lerr == nil {
 			if derr := netlink.LinkDel(stale); derr != nil {
 				return fmt.Errorf("delete stale link %s: %w", t.iface, derr)
 			}
 		}
 		if err = netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la}); err == nil {
-			log.Printf("bifrost/wg: %s: using kernel WireGuard", t.iface)
+			log.Printf("%s: using kernel WireGuard", t.iface)
 			return nil
 		}
 	}
-	log.Printf("bifrost/wg: %s: kernel WireGuard unavailable (%v), falling back to userspace", t.iface, err)
+	log.Printf("%s: kernel WireGuard unavailable (%v), falling back to userspace", t.iface, err)
 	// Kernel WireGuard unavailable; fall back to the userspace implementation.
 
 	tdev, err := tun.CreateTUN(t.iface, mtuOr(t.cfg, 1420))
@@ -131,7 +131,7 @@ func (t *Tunnel) createLink() error {
 	}
 
 	t.userspace = true
-	log.Printf("bifrost/wg: %s: using userspace WireGuard (wireguard-go)", t.iface)
+	log.Printf("%s: using userspace WireGuard (wireguard-go)", t.iface)
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (t *Tunnel) configure() error {
 		if p.EndpointHost != "" {
 			ep, err := resolveUDP(p.EndpointHost, p.EndpointPort)
 			if err != nil {
-				log.Printf("bifrost/wg: %s: peer %s endpoint %s:%d does not resolve yet: %v", t.iface, pub, p.EndpointHost, p.EndpointPort, err)
+				log.Printf("%s: peer %s endpoint %s:%d does not resolve yet: %v", t.iface, pub, p.EndpointHost, p.EndpointPort, err)
 			} else {
 				pc.Endpoint = ep
 			}
@@ -210,7 +210,7 @@ func (t *Tunnel) setupNetwork() error {
 		}
 		if err := netlink.AddrAdd(link, addr); err != nil {
 			if isExist(err) {
-				log.Printf("bifrost/wg: %s: address %s already exists, ignoring", t.iface, a)
+				log.Printf("%s: address %s already exists, ignoring", t.iface, a)
 				continue
 			}
 			return fmt.Errorf("add address %s: %w", a, err)
@@ -230,7 +230,7 @@ func (t *Tunnel) setupNetwork() error {
 	for _, p := range t.cfg.Peers {
 		for _, prefix := range p.AllowedIPs {
 			if isDefaultRoute(prefix) {
-				log.Printf("bifrost/wg: %s: skipping full-tunnel route %s (full-tunnel deferred)", t.iface, prefix)
+				log.Printf("%s: skipping full-tunnel route %s (full-tunnel deferred)", t.iface, prefix)
 				continue
 			}
 			route := &netlink.Route{
@@ -240,7 +240,7 @@ func (t *Tunnel) setupNetwork() error {
 			}
 			if err := netlink.RouteAdd(route); err != nil {
 				if isExist(err) {
-					log.Printf("bifrost/wg: %s: route %s already exists, ignoring", t.iface, prefix)
+					log.Printf("%s: route %s already exists, ignoring", t.iface, prefix)
 					continue
 				}
 				return fmt.Errorf("add route %s: %w", prefix, err)
