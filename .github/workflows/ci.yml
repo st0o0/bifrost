@@ -4,19 +4,12 @@ name: ci
 # commit, so re-running the same checks on the post-merge push to main would be
 # pure duplication — release.yml owns main. Enable branch protection ("require
 # a pull request before merging") so every change to main is validated here.
+#
+# No paths filter: these jobs are required checks, and a filtered-out workflow
+# never reports, leaving the PR stuck on "Expected — waiting". The jobs are
+# cheap enough to always run.
 on:
   pull_request:
-    paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - '.golangci.yml'
-      - '.hadolint.yaml'
-      - 'tests/**'
-      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
@@ -27,25 +20,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  # Named to match the branch-protection required checks: unit, lint, build, e2e.
+  unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
-      - name: go vet
-        run: go vet ./...
+          go-version-file: go.mod
+      # vet runs inside golangci-lint (govet is a default linter)
       - name: go test
-        run: go test ./...
+        run: go test -race ./...
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
@@ -58,6 +53,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -82,7 +78,7 @@ jobs:
   # e2e is the slow job (~minutes) — only run it once the cheap checks pass.
   # The image build is a cache hit from the build job.
   e2e:
-    needs: [test, lint, build]
+    needs: [unit, lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
