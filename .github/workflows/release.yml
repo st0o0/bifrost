@@ -63,6 +63,12 @@ jobs:
             VERSION=${{ needs.release-please.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # GHCR shows the package description only from the image-index
+          # annotations on multi-arch images — per-image LABELs don't surface.
+          annotations: |
+            index:org.opencontainers.image.description=Minimal native-Go WireGuard client that keeps dependents tunneled across DDNS endpoint IP changes without a netns teardown
+            index:org.opencontainers.image.source=https://github.com/st0o0/bifrost
+            index:org.opencontainers.image.licenses=MIT
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true   # SLSA build provenance attestation
