@@ -8,6 +8,6 @@
 
 - [ ] Commit messages follow Conventional Commits
 - [ ] Tests added/updated for behavior changes
-- [ ] `bats tests/*.bats` passes
-- [ ] `shellcheck` (scripts) and `hadolint` (Dockerfile) pass
+- [ ] `go test ./...` passes
+- [ ] `go vet ./...` and `golangci-lint run` are clean; `hadolint` (Dockerfile) passes
 - [ ] Docs (`README.md` / `.env.example`) updated if config or behavior changed
