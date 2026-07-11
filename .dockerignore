@@ -4,3 +4,4 @@ tests
 *.md
 .github
 .hadolint.yaml
+.shellcheckrc
