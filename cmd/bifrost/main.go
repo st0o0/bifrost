@@ -35,15 +35,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	confPath := "/etc/wireguard/" + s.Interface + ".conf"
-	f, err := os.Open(confPath)
-	if err != nil {
-		log.Fatalf("config not found at %s — mount your WireGuard .conf there", confPath)
-	}
-	cfg, err := config.ParseConfig(f)
-	f.Close()
+
+	cfg, fromEnv, err := config.LoadConfig(os.Getenv)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if !fromEnv {
+		confPath := "/etc/wireguard/" + s.Interface + ".conf"
+		f, err := os.Open(confPath)
+		if err != nil {
+			log.Fatalf("config not found at %s — mount your WireGuard .conf there or set BIFROST_PRIVATE_KEY", confPath)
+		}
+		cfg, err = config.ParseConfig(f)
+		f.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if err := cfg.Validate(); err != nil {
 		log.Fatal(err)
