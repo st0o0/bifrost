@@ -30,6 +30,63 @@ type Peer struct {
 	PersistentKeepalive int
 }
 
+// LoadConfig builds a Config from BIFROST_* environment variables (single-peer).
+// It returns (cfg, true, nil) when BIFROST_PRIVATE_KEY is set, or (nil, false, nil)
+// when no env-based config is present so the caller can fall back to a .conf file.
+func LoadConfig(getenv func(string) string) (*Config, bool, error) {
+	pk := getenv("BIFROST_PRIVATE_KEY")
+	if pk == "" {
+		return nil, false, nil
+	}
+
+	e := &envReader{getenv: getenv}
+	cfg := &Config{
+		PrivateKey: pk,
+		ListenPort: e.intMin("BIFROST_LISTEN_PORT", 0, 0),
+		MTU:        e.intMin("BIFROST_MTU", 0, 0),
+	}
+	if e.err != nil {
+		return nil, true, e.err
+	}
+
+	addrRaw := getenv("BIFROST_ADDRESS")
+	if addrRaw != "" {
+		addrs, err := parsePrefixList(addrRaw)
+		if err != nil {
+			return nil, true, fmt.Errorf("BIFROST_ADDRESS: %w", err)
+		}
+		cfg.Addresses = addrs
+	}
+
+	peer := Peer{
+		PublicKey:     getenv("BIFROST_PEER_PUBLIC_KEY"),
+		PresharedKey:  getenv("BIFROST_PEER_PRESHARED_KEY"),
+		PersistentKeepalive: e.intMin("BIFROST_PEER_KEEPALIVE", 0, 0),
+	}
+	if e.err != nil {
+		return nil, true, e.err
+	}
+
+	if ep := getenv("BIFROST_PEER_ENDPOINT"); ep != "" {
+		host, port, err := splitEndpoint(ep)
+		if err != nil {
+			return nil, true, fmt.Errorf("BIFROST_PEER_ENDPOINT: %w", err)
+		}
+		peer.EndpointHost, peer.EndpointPort = host, port
+	}
+
+	if ips := getenv("BIFROST_PEER_ALLOWED_IPS"); ips != "" {
+		allowed, err := parsePrefixList(ips)
+		if err != nil {
+			return nil, true, fmt.Errorf("BIFROST_PEER_ALLOWED_IPS: %w", err)
+		}
+		peer.AllowedIPs = allowed
+	}
+
+	cfg.Peers = []Peer{peer}
+	return cfg, true, nil
+}
+
 // ParseConfig parses a wg-quick style .conf.
 func ParseConfig(r io.Reader) (*Config, error) {
 	cfg := &Config{}
