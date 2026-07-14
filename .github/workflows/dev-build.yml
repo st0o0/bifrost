@@ -31,7 +31,7 @@ jobs:
       packages: write
       pull-requests: write   # result comment with the pull command
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Build exactly the PR branch head, so the dev-<sha> tag matches the
           # commit it was built from (not the ephemeral merge commit).
