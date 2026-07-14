@@ -6,12 +6,22 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "deps"
+    groups:
+      go-all:
+        patterns:
+          - "*"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     commit-message:
       prefix: "deps"
+    groups:
+      actions-all:
+        patterns:
+          - "*"
+
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
