@@ -25,8 +25,8 @@ jobs:
       contents: read
       security-events: write   # upload SARIF to the Security tab
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build image
         uses: docker/build-push-action@v7
         with:
@@ -47,6 +47,6 @@ jobs:
           exit-code: '0'
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy.sarif
