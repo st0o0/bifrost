@@ -14,6 +14,11 @@ import (
 // var _ ensures Tunnel keeps satisfying recovery.Controller.
 var _ recovery.Controller = (*Tunnel)(nil)
 
+// Device returns the current WireGuard device state via wgctrl.
+func (t *Tunnel) Device() (*wgtypes.Device, error) {
+	return t.ctrl.Device(t.iface)
+}
+
 // NewestHandshake returns the newest LastHandshakeTime across peers (zero if
 // none yet).
 func (t *Tunnel) NewestHandshake() time.Time {
@@ -42,7 +47,22 @@ func NewestHandshakeVia(client *wgctrl.Client, iface string) time.Time {
 // Resolve re-resolves each peer's hostname endpoint and updates it in place
 // (UpdateOnly: true — never creates a new peer). Peers with no hostname
 // endpoint, or whose hostname doesn't currently resolve, are left untouched.
+// If a peer's resolved IP differs from its current endpoint, OnEndpointChange
+// is called (if set).
 func (t *Tunnel) Resolve() error {
+	dev, err := t.ctrl.Device(t.iface)
+	if err != nil {
+		dev = nil
+	}
+	currentEndpoints := make(map[wgtypes.Key]string)
+	if dev != nil {
+		for _, p := range dev.Peers {
+			if p.Endpoint != nil {
+				currentEndpoints[p.PublicKey] = p.Endpoint.IP.String()
+			}
+		}
+	}
+
 	var peers []wgtypes.PeerConfig
 	for _, p := range t.cfg.Peers {
 		if p.EndpointHost == "" {
@@ -55,6 +75,11 @@ func (t *Tunnel) Resolve() error {
 		key, err := wgtypes.ParseKey(p.PublicKey)
 		if err != nil {
 			continue
+		}
+		if oldIP, ok := currentEndpoints[key]; ok && ep.IP.String() != oldIP {
+			if t.OnEndpointChange != nil {
+				t.OnEndpointChange()
+			}
 		}
 		peers = append(peers, wgtypes.PeerConfig{PublicKey: key, Endpoint: ep, UpdateOnly: true})
 	}
