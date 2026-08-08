@@ -9,7 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/st0o0/bifrost/internal/config"
+	"github.com/st0o0/bifrost/internal/metrics"
 	"github.com/st0o0/bifrost/internal/probe"
 	"github.com/st0o0/bifrost/internal/supervisor"
 	"github.com/st0o0/bifrost/internal/wg"
@@ -65,10 +68,28 @@ func main() {
 	}
 	defer tun.Close()
 
+	var stats *metrics.Stats
+	if s.Metrics {
+		stats = &metrics.Stats{}
+		tun.OnEndpointChange = stats.IncEndpointChanges
+
+		collector := metrics.NewCollector(metrics.CollectorOpts{
+			Stats:      stats,
+			Device:     tun.Device,
+			StaleAfter: s.StaleAfter,
+			ProbeOn:    s.Probe,
+		})
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(collector)
+		if err := metrics.ListenAndServe(s.MetricsAddr, reg); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	if !s.Resolve && !s.Reconnect {
 		log.Print("recovery disabled (resolve and reconnect both off)")
 		<-ctx.Done()
 		return
 	}
-	supervisor.Run(ctx, supervisor.Deps{Ctrl: tun, Pinger: probe.ICMPPinger{}}, s, probe.Targets(cfg, s.ProbeHost))
+	supervisor.Run(ctx, supervisor.Deps{Ctrl: tun, Pinger: probe.ICMPPinger{}, Stats: stats}, s, probe.Targets(cfg, s.ProbeHost))
 }

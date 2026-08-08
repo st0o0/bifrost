@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/st0o0/bifrost/internal/config"
+	"github.com/st0o0/bifrost/internal/metrics"
 	"github.com/st0o0/bifrost/internal/probe"
 	"github.com/st0o0/bifrost/internal/recovery"
 )
@@ -19,6 +20,8 @@ import (
 type Deps struct {
 	Ctrl   recovery.Controller
 	Pinger probe.Pinger
+	// Stats receives metric counter increments; nil disables metrics tracking.
+	Stats *metrics.Stats
 	// Now is injectable for tests; nil uses the real clock.
 	Now func() time.Time
 	// ProbeTicks and CheckTicks are injectable tick sources for tests. When
@@ -45,6 +48,10 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 				log.Printf("%s attempt %d", stage, a)
 			}
 		},
+	}
+	if d.Stats != nil {
+		opts.OnResolve = d.Stats.IncResolves
+		opts.OnReconnect = d.Stats.IncReconnects
 	}
 	recoverNow := func(reason string) {
 		log.Printf("%s — recovery", reason)
@@ -98,8 +105,11 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			if !everHandshaked {
 				continue // startup guard: only after the first-ever handshake
 			}
-			down := probe.AllDown(targets, s.ProbeTimeout, d.Pinger)
-			if st.Round(down) {
+			result := probe.AllDown(targets, s.ProbeTimeout, d.Pinger)
+			if d.Stats != nil && result.BestRTT > 0 {
+				d.Stats.SetProbeRTT(result.BestRTT.Seconds())
+			}
+			if st.Round(result.Down) {
 				recoverNow("probe all targets down")
 			}
 		case <-checkC:
