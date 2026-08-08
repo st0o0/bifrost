@@ -219,6 +219,44 @@ invalid or non-numeric values fail fast at startup with a clear message.
 If you change `BIFROST_INTERFACE` away from `wg0`, mount your config at the
 matching `/etc/wireguard/<name>.conf`.
 
+### Monitoring (optional, Prometheus metrics)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BIFROST_METRICS` | `off` | Enable the Prometheus `/metrics` HTTP endpoint |
+| `BIFROST_METRICS_ADDR` | `:9586` | Listen address for the metrics server |
+
+When enabled, Bifrost exposes these metrics (all prefixed `bifrost_`):
+
+| Metric | Type | Labels | Description |
+|---|---|---|---|
+| `bifrost_tunnel_up` | gauge | — | `1` if any peer handshake is non-stale, `0` otherwise |
+| `bifrost_peer_last_handshake_age_seconds` | gauge | `peer` | Seconds since the peer's last handshake |
+| `bifrost_peer_receive_bytes_total` | counter | `peer` | Bytes received from peer |
+| `bifrost_peer_transmit_bytes_total` | counter | `peer` | Bytes transmitted to peer |
+| `bifrost_reconnects_total` | counter | — | Process-lifetime reconnect attempts |
+| `bifrost_resolves_total` | counter | — | Process-lifetime DDNS re-resolution attempts |
+| `bifrost_endpoint_changes_total` | counter | — | Re-resolutions that yielded a new IP |
+| `bifrost_probe_rtt_seconds` | gauge | — | Last probe RTT (only when `BIFROST_PROBE=on`) |
+| `bifrost_build_info` | gauge | `version` | Always `1`; carries the version label |
+
+The `peer` label contains the first 8 characters of the peer's base64 public key.
+Endpoint IPs and hostnames are never exposed as labels.
+
+Metrics are read live from WireGuard on each scrape — no additional polling.
+Counters survive reconnects (they track process-lifetime totals).
+
+Because consumers attach via `network_mode: service:bifrost`, a sibling container
+(e.g. Grafana Alloy) can scrape `127.0.0.1:9586`:
+
+```alloy
+prometheus.scrape "bifrost" {
+  targets = [{"__address__" = "127.0.0.1:9586"}]
+  scrape_interval = "30s"
+  forward_to     = [prometheus.remote_write.default.receiver]
+}
+```
+
 ## Runtime requirements
 
 WireGuard runs either **in the kernel** (fast, no TUN device) or **in userspace**
