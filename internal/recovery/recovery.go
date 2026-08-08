@@ -26,6 +26,10 @@ type Options struct {
 	// ("resolve"/"reconnect"), the 1-based attempt number, and the action's
 	// error (nil on success). For logging; must not block.
 	OnAttempt func(stage string, attempt int, err error)
+	// OnResolve is called after each resolve attempt (regardless of outcome).
+	OnResolve func()
+	// OnReconnect is called after each reconnect attempt (regardless of outcome).
+	OnReconnect func()
 }
 
 // Recover runs one escalating recovery episode: resolve retries, then reconnect
@@ -43,7 +47,7 @@ func Recover(ctx context.Context, c Controller, o Options) bool {
 	}
 	recovered := func() bool { return c.NewestHandshake().After(baseline) }
 
-	run := func(stage string, retries int, base time.Duration, act func() error) bool {
+	run := func(stage string, retries int, base time.Duration, act func() error, onCall func()) bool {
 		for a := 1; a <= retries; a++ {
 			if ctx.Err() != nil {
 				return false
@@ -51,6 +55,9 @@ func Recover(ctx context.Context, c Controller, o Options) bool {
 			err := act()
 			if o.OnAttempt != nil {
 				o.OnAttempt(stage, a, err)
+			}
+			if onCall != nil {
+				onCall()
 			}
 			sleep(ctx, Backoff(a, base))
 			if recovered() {
@@ -60,10 +67,10 @@ func Recover(ctx context.Context, c Controller, o Options) bool {
 		return false
 	}
 
-	if o.Resolve && run("resolve", o.ResolveRetries, o.ResolveBackoff, c.Resolve) {
+	if o.Resolve && run("resolve", o.ResolveRetries, o.ResolveBackoff, c.Resolve, o.OnResolve) {
 		return true
 	}
-	if o.Reconnect && run("reconnect", o.ReconnectRetries, o.ReconnectBackoff, c.Reconnect) {
+	if o.Reconnect && run("reconnect", o.ReconnectRetries, o.ReconnectBackoff, c.Reconnect, o.OnReconnect) {
 		return true
 	}
 	return false
