@@ -37,6 +37,9 @@ type Tunnel struct {
 	dev       *device.Device // non-nil in userspace mode
 	uapi      net.Listener   // non-nil in userspace mode
 	ctrl      *wgctrl.Client
+	// OnEndpointChange, if set, is called when Resolve() detects a peer's
+	// endpoint has changed to a new IP address.
+	OnEndpointChange func()
 }
 
 // Bring creates and configures the interface: kernel WireGuard first, falling
