@@ -78,6 +78,23 @@ func TestRecoverExhausted(t *testing.T) {
 	}
 }
 
+func TestRecoverCallbacks(t *testing.T) {
+	var resolveCount, reconnectCount int
+	f := &fakeCtrl{reconnectAt: 1}
+	o := opts()
+	o.OnResolve = func() { resolveCount++ }
+	o.OnReconnect = func() { reconnectCount++ }
+	if !Recover(context.Background(), f, o) {
+		t.Fatal("expected recovery")
+	}
+	if resolveCount != o.ResolveRetries {
+		t.Errorf("OnResolve called %d times, want %d", resolveCount, o.ResolveRetries)
+	}
+	if reconnectCount != 1 {
+		t.Errorf("OnReconnect called %d times, want 1", reconnectCount)
+	}
+}
+
 func TestRecoverContextCancelled(t *testing.T) {
 	f := &fakeCtrl{} // never recovers
 	ctx, cancel := context.WithCancel(context.Background())
