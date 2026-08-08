@@ -30,6 +30,9 @@ type Settings struct {
 	ProbeFails    int
 	ProbeTimeout  time.Duration
 	ProbeHost     string
+
+	Metrics     bool
+	MetricsAddr string
 }
 
 // LoadSettings reads and validates the BIFROST_* variables via getenv (pass
@@ -53,6 +56,8 @@ func LoadSettings(getenv func(string) string) (*Settings, error) {
 		ProbeFails:       e.intMin("BIFROST_PROBE_FAILS", 3, 1),
 		ProbeTimeout:     e.secs("BIFROST_PROBE_TIMEOUT", 2, 1),
 		ProbeHost:        e.str("BIFROST_PROBE_HOST", ""),
+		Metrics:          e.boolean("BIFROST_METRICS", false),
+		MetricsAddr:      e.str("BIFROST_METRICS_ADDR", ":9586"),
 	}
 	if e.err != nil {
 		return nil, e.err

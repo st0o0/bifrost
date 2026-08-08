@@ -23,6 +23,9 @@ func TestLoadSettingsDefaults(t *testing.T) {
 	if s.ProbeInterval != 10*time.Second || s.ProbeFails != 3 {
 		t.Errorf("probe defaults wrong: %+v", s)
 	}
+	if s.Metrics || s.MetricsAddr != ":9586" {
+		t.Errorf("metrics defaults wrong: Metrics=%v MetricsAddr=%q", s.Metrics, s.MetricsAddr)
+	}
 }
 
 func TestLoadSettingsOverrideAndBool(t *testing.T) {
@@ -34,6 +37,21 @@ func TestLoadSettingsOverrideAndBool(t *testing.T) {
 	}
 	if !s.Probe || s.Resolve || s.StaleAfter != 60*time.Second {
 		t.Errorf("override wrong: %+v", s)
+	}
+}
+
+func TestLoadSettingsMetrics(t *testing.T) {
+	s, err := LoadSettings(env(map[string]string{
+		"BIFROST_METRICS": "on", "BIFROST_METRICS_ADDR": "127.0.0.1:2112",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.Metrics {
+		t.Error("expected Metrics=true")
+	}
+	if s.MetricsAddr != "127.0.0.1:2112" {
+		t.Errorf("MetricsAddr = %q, want 127.0.0.1:2112", s.MetricsAddr)
 	}
 }
 
