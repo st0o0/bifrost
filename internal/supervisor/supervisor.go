@@ -7,7 +7,7 @@ package supervisor
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/st0o0/bifrost/internal/config"
@@ -43,9 +43,9 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 		Reconnect: s.Reconnect, ReconnectRetries: s.ReconnectRetries, ReconnectBackoff: s.ReconnectBackoff,
 		OnAttempt: func(stage string, a int, err error) {
 			if err != nil {
-				log.Printf("%s attempt %d: %v", stage, a, err)
+				slog.Warn("recovery attempt failed", "stage", stage, "attempt", a, "error", err)
 			} else {
-				log.Printf("%s attempt %d", stage, a)
+				slog.Info("recovery attempt", "stage", stage, "attempt", a)
 			}
 		},
 	}
@@ -54,17 +54,17 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 		opts.OnReconnect = d.Stats.IncReconnects
 	}
 	recoverNow := func(reason string) {
-		log.Printf("%s — recovery", reason)
+		slog.Warn("starting recovery", "reason", reason)
 		if recovery.Recover(ctx, d.Ctrl, opts) {
-			log.Print("recovered")
+			slog.Info("recovered")
 		} else {
-			log.Print("recovery exhausted; will retry")
+			slog.Warn("recovery exhausted; will retry")
 		}
 	}
 
 	probeOn := s.Probe && len(targets) > 0
 	if s.Probe && len(targets) == 0 {
-		log.Print("probe enabled but no targets — probe inactive")
+		slog.Info("probe enabled but no targets")
 	}
 
 	checkC := d.CheckTicks
@@ -82,7 +82,7 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			defer pt.Stop()
 			probeC = pt.C
 		}
-		log.Printf("liveness probe on — %v", targets)
+		slog.Info("liveness probe on", "targets", targets)
 	}
 	st := probe.NewState(s.ProbeFails)
 

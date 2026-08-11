@@ -1,6 +1,8 @@
 package config
 
 import (
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 )
@@ -25,6 +27,12 @@ func TestLoadSettingsDefaults(t *testing.T) {
 	}
 	if s.Metrics || s.MetricsAddr != ":9586" {
 		t.Errorf("metrics defaults wrong: Metrics=%v MetricsAddr=%q", s.Metrics, s.MetricsAddr)
+	}
+	if s.LogLevel != slog.LevelInfo {
+		t.Errorf("LogLevel = %v, want info", s.LogLevel)
+	}
+	if s.LogFormat != "json" {
+		t.Errorf("LogFormat = %q, want json", s.LogFormat)
 	}
 }
 
@@ -66,5 +74,52 @@ func TestLoadSettingsValidation(t *testing.T) {
 		if _, err := LoadSettings(env(map[string]string{k: v})); err == nil {
 			t.Errorf("%s=%s: expected error", k, v)
 		}
+	}
+}
+
+func TestLoadSettingsLogLevel(t *testing.T) {
+	for _, tc := range []struct {
+		val  string
+		want slog.Level
+	}{
+		{"debug", slog.LevelDebug},
+		{"INFO", slog.LevelInfo},
+		{"Warn", slog.LevelWarn},
+		{"ERROR", slog.LevelError},
+	} {
+		s, err := LoadSettings(env(map[string]string{"BIFROST_LOG_LEVEL": tc.val}))
+		if err != nil {
+			t.Fatalf("BIFROST_LOG_LEVEL=%q: %v", tc.val, err)
+		}
+		if s.LogLevel != tc.want {
+			t.Errorf("BIFROST_LOG_LEVEL=%q: got %v, want %v", tc.val, s.LogLevel, tc.want)
+		}
+	}
+}
+
+func TestLoadSettingsLogLevelInvalid(t *testing.T) {
+	_, err := LoadSettings(env(map[string]string{"BIFROST_LOG_LEVEL": "verbose"}))
+	if err == nil {
+		t.Error("expected error for invalid log level")
+	}
+}
+
+func TestLoadSettingsLogFormat(t *testing.T) {
+	for _, val := range []string{"json", "text", "JSON", "TEXT"} {
+		s, err := LoadSettings(env(map[string]string{"BIFROST_LOG_FORMAT": val}))
+		if err != nil {
+			t.Fatalf("BIFROST_LOG_FORMAT=%q: %v", val, err)
+		}
+		want := strings.ToLower(val)
+		if s.LogFormat != want {
+			t.Errorf("BIFROST_LOG_FORMAT=%q: got %q, want %q", val, s.LogFormat, want)
+		}
+	}
+}
+
+func TestLoadSettingsLogFormatInvalid(t *testing.T) {
+	_, err := LoadSettings(env(map[string]string{"BIFROST_LOG_FORMAT": "xml"}))
+	if err == nil {
+		t.Error("expected error for invalid log format")
 	}
 }
