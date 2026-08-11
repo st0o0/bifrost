@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 
@@ -23,10 +23,10 @@ func ListenAndServe(addr string, reg *prometheus.Registry) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 	srv := &http.Server{Handler: mux}
-	log.Printf("metrics server listening on %s", addr)
+	slog.Info("metrics server listening", "addr", addr)
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("metrics server error: %v", err)
+			slog.Error("metrics server error", "error", err)
 		}
 	}()
 	return nil

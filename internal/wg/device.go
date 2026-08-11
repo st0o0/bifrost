@@ -10,7 +10,7 @@ package wg
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/netip"
 	"os"
@@ -77,24 +77,22 @@ func (t *Tunnel) createLink() error {
 	la.Name = t.iface
 	err := netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la})
 	if err == nil {
-		log.Printf("%s: using kernel WireGuard", t.iface)
+		slog.Info("using kernel wireguard", "interface", t.iface)
 		return nil
 	}
 	if isExist(err) {
-		// Leftover link from a crashed prior run: delete it and retry once,
-		// rather than falling back to userspace.
-		log.Printf("%s: link already exists, deleting stale link and retrying", t.iface)
+		slog.Warn("link already exists, deleting stale link", "interface", t.iface)
 		if stale, lerr := netlink.LinkByName(t.iface); lerr == nil {
 			if derr := netlink.LinkDel(stale); derr != nil {
 				return fmt.Errorf("delete stale link %s: %w", t.iface, derr)
 			}
 		}
 		if err = netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: la}); err == nil {
-			log.Printf("%s: using kernel WireGuard", t.iface)
+			slog.Info("using kernel wireguard", "interface", t.iface)
 			return nil
 		}
 	}
-	log.Printf("%s: kernel WireGuard unavailable (%v), falling back to userspace", t.iface, err)
+	slog.Info("kernel wireguard unavailable, falling back to userspace", "interface", t.iface, "error", err)
 	// Kernel WireGuard unavailable; fall back to the userspace implementation.
 
 	tdev, err := tun.CreateTUN(t.iface, mtuOr(t.cfg, 1420))
@@ -134,7 +132,7 @@ func (t *Tunnel) createLink() error {
 	}
 
 	t.userspace = true
-	log.Printf("%s: using userspace WireGuard (wireguard-go)", t.iface)
+	slog.Info("using userspace wireguard", "interface", t.iface)
 	return nil
 }
 
@@ -184,7 +182,7 @@ func (t *Tunnel) configure() error {
 		if p.EndpointHost != "" {
 			ep, err := resolveUDP(p.EndpointHost, p.EndpointPort)
 			if err != nil {
-				log.Printf("%s: peer %s endpoint %s:%d does not resolve yet: %v", t.iface, pub, p.EndpointHost, p.EndpointPort, err)
+				slog.Warn("peer endpoint not resolved", "interface", t.iface, "peer", pub, "host", p.EndpointHost, "port", p.EndpointPort, "error", err)
 			} else {
 				pc.Endpoint = ep
 			}
@@ -213,7 +211,7 @@ func (t *Tunnel) setupNetwork() error {
 		}
 		if err := netlink.AddrAdd(link, addr); err != nil {
 			if isExist(err) {
-				log.Printf("%s: address %s already exists, ignoring", t.iface, a)
+				slog.Warn("address already exists", "interface", t.iface, "address", a)
 				continue
 			}
 			return fmt.Errorf("add address %s: %w", a, err)
@@ -233,7 +231,7 @@ func (t *Tunnel) setupNetwork() error {
 	for _, p := range t.cfg.Peers {
 		for _, prefix := range p.AllowedIPs {
 			if isDefaultRoute(prefix) {
-				log.Printf("%s: skipping full-tunnel route %s (full-tunnel deferred)", t.iface, prefix)
+				slog.Info("skipping full-tunnel route", "interface", t.iface, "route", prefix)
 				continue
 			}
 			route := &netlink.Route{
@@ -243,7 +241,7 @@ func (t *Tunnel) setupNetwork() error {
 			}
 			if err := netlink.RouteAdd(route); err != nil {
 				if isExist(err) {
-					log.Printf("%s: route %s already exists, ignoring", t.iface, prefix)
+					slog.Warn("route already exists", "interface", t.iface, "route", prefix)
 					continue
 				}
 				return fmt.Errorf("add route %s: %w", prefix, err)

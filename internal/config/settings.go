@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +34,9 @@ type Settings struct {
 
 	Metrics     bool
 	MetricsAddr string
+
+	LogLevel  slog.Level
+	LogFormat string
 }
 
 // LoadSettings reads and validates the BIFROST_* variables via getenv (pass
@@ -58,6 +62,8 @@ func LoadSettings(getenv func(string) string) (*Settings, error) {
 		ProbeHost:        e.str("BIFROST_PROBE_HOST", ""),
 		Metrics:          e.boolean("BIFROST_METRICS", false),
 		MetricsAddr:      e.str("BIFROST_METRICS_ADDR", ":9586"),
+		LogLevel:         e.logLevel("BIFROST_LOG_LEVEL", slog.LevelInfo),
+		LogFormat:        e.logFormat("BIFROST_LOG_FORMAT", "json"),
 	}
 	if e.err != nil {
 		return nil, e.err
@@ -104,6 +110,40 @@ func (e *envReader) boolean(name string, def bool) bool {
 		return false
 	default:
 		e.setErr(fmt.Errorf("%s must be on/off, got %q", name, e.getenv(name)))
+		return def
+	}
+}
+
+func (e *envReader) logLevel(name string, def slog.Level) slog.Level {
+	v := strings.ToLower(strings.TrimSpace(e.getenv(name)))
+	if v == "" {
+		return def
+	}
+	switch v {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		e.setErr(fmt.Errorf("%s must be debug/info/warn/error, got %q", name, e.getenv(name)))
+		return def
+	}
+}
+
+func (e *envReader) logFormat(name, def string) string {
+	v := strings.ToLower(strings.TrimSpace(e.getenv(name)))
+	if v == "" {
+		return def
+	}
+	switch v {
+	case "json", "text":
+		return v
+	default:
+		e.setErr(fmt.Errorf("%s must be json/text, got %q", name, e.getenv(name)))
 		return def
 	}
 }
