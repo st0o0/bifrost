@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1](https://github.com/st0o0/bifrost/compare/v0.2.0...v0.2.1) (2026-08-16)
+
+
+### Features
+
+* **config:** add BIFROST_METRICS and BIFROST_METRICS_ADDR settings ([992085d](https://github.com/st0o0/bifrost/commit/992085d8bd5b5041b6dc31cdec33d54fcdb0f635))
+* **metrics:** add Prometheus collector, stats counters, and HTTP server ([b6e0ff8](https://github.com/st0o0/bifrost/commit/b6e0ff8e064e1db2b9ab47ac7d4228d7b6f650fe))
+* **metrics:** expand Prometheus metrics with device, interface, recovery, and uptime ([d2cb5ec](https://github.com/st0o0/bifrost/commit/d2cb5ecf87a3764f7eddcda9155ae31aef3a239b))
+* migrate from stdlib log to log/slog structured logging ([46a3dd3](https://github.com/st0o0/bifrost/commit/46a3dd3ebe17e262a955a6591f5b8f44fc94f341))
+* **probe:** return ProbeResult with RTT from AllDown ([208c9fc](https://github.com/st0o0/bifrost/commit/208c9fc843e22273bd1a182da0f78357d3a7f89c))
+* **recovery:** add OnResolve and OnReconnect callbacks ([8749c74](https://github.com/st0o0/bifrost/commit/8749c74a3b54556791c488551887d0d2ae901a89))
+* **wg:** detect endpoint IP changes during resolve ([00d461f](https://github.com/st0o0/bifrost/commit/00d461f9ecb3aea98e23aca54f1a03b2af11c8a9))
+* wire Prometheus metrics into supervisor and main ([51f6757](https://github.com/st0o0/bifrost/commit/51f6757d3fe0c047a223547eb9618b564044cb99))
+
 ## [0.2.0](https://github.com/st0o0/bifrost/compare/v0.1.0...v0.2.0) (2026-07-14)
 
 
