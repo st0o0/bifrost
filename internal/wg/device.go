@@ -42,6 +42,13 @@ type Tunnel struct {
 	OnEndpointChange func()
 }
 
+// IsUserspace reports whether the tunnel uses the userspace (wireguard-go)
+// implementation rather than the kernel module.
+func (t *Tunnel) IsUserspace() bool { return t.userspace }
+
+// Interface returns the network interface name.
+func (t *Tunnel) Interface() string { return t.iface }
+
 // Bring creates and configures the interface: kernel WireGuard first, falling
 // back to the embedded userspace implementation; then applies keys/peers via
 // wgctrl and sets up addresses/split-tunnel routes, and brings the link up.

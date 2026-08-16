@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -75,13 +76,20 @@ func main() {
 	var stats *metrics.Stats
 	if s.Metrics {
 		stats = &metrics.Stats{}
+		stats.SetTunnelUpSince(time.Now().Unix())
 		tun.OnEndpointChange = stats.IncEndpointChanges
 
+		deviceType := "kernel"
+		if tun.IsUserspace() {
+			deviceType = "userspace"
+		}
 		collector := metrics.NewCollector(metrics.CollectorOpts{
 			Stats:      stats,
 			Device:     tun.Device,
 			StaleAfter: s.StaleAfter,
 			ProbeOn:    s.Probe,
+			DeviceType: deviceType,
+			Interface:  tun.Interface(),
 		})
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(collector)

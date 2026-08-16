@@ -49,13 +49,27 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			}
 		},
 	}
+	ctrl := d.Ctrl
 	if d.Stats != nil {
 		opts.OnResolve = d.Stats.IncResolves
 		opts.OnReconnect = d.Stats.IncReconnects
+		ctrl = &timedCtrl{Controller: d.Ctrl, stats: d.Stats}
 	}
 	recoverNow := func(reason string) {
 		slog.Warn("starting recovery", "reason", reason)
-		if recovery.Recover(ctx, d.Ctrl, opts) {
+		if d.Stats != nil {
+			d.Stats.SetRecoveryStart(now().UnixNano())
+		}
+		start := now()
+		ok := recovery.Recover(ctx, ctrl, opts)
+		if d.Stats != nil {
+			d.Stats.SetLastRecoveryDuration(time.Since(start).Seconds())
+			d.Stats.SetRecoveryStart(0)
+			if ok {
+				d.Stats.SetTunnelUpSince(now().Unix())
+			}
+		}
+		if ok {
 			slog.Info("recovered")
 		} else {
 			slog.Warn("recovery exhausted; will retry")
@@ -122,4 +136,16 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 			}
 		}
 	}
+}
+
+type timedCtrl struct {
+	recovery.Controller
+	stats *metrics.Stats
+}
+
+func (t *timedCtrl) Resolve() error {
+	start := time.Now()
+	err := t.Controller.Resolve()
+	t.stats.SetLastResolveDuration(time.Since(start).Seconds())
+	return err
 }

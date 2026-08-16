@@ -228,20 +228,53 @@ matching `/etc/wireguard/<name>.conf`.
 
 When enabled, Bifrost exposes these metrics (all prefixed `bifrost_`):
 
+**Tunnel health & uptime**
+
 | Metric | Type | Labels | Description |
 |---|---|---|---|
 | `bifrost_tunnel_up` | gauge | — | `1` if any peer handshake is non-stale, `0` otherwise |
+| `bifrost_tunnel_up_since_seconds` | gauge | — | Unix timestamp of when the tunnel was last brought up |
+| `bifrost_device_info` | gauge | `type` | Always `1`; `type` is `kernel` or `userspace` |
+| `bifrost_build_info` | gauge | `version` | Always `1`; carries the version label |
+
+**Per-peer**
+
+| Metric | Type | Labels | Description |
+|---|---|---|---|
 | `bifrost_peer_last_handshake_age_seconds` | gauge | `peer` | Seconds since the peer's last handshake |
 | `bifrost_peer_receive_bytes_total` | counter | `peer` | Bytes received from peer |
 | `bifrost_peer_transmit_bytes_total` | counter | `peer` | Bytes transmitted to peer |
+| `bifrost_peer_endpoint_info` | gauge | `peer`, `endpoint` | Always `1`; `endpoint` is the current `ip:port` |
+| `bifrost_peer_allowed_ips_count` | gauge | `peer` | Number of allowed IP prefixes for the peer |
+
+**Recovery & DDNS**
+
+| Metric | Type | Labels | Description |
+|---|---|---|---|
 | `bifrost_reconnects_total` | counter | — | Process-lifetime reconnect attempts |
 | `bifrost_resolves_total` | counter | — | Process-lifetime DDNS re-resolution attempts |
 | `bifrost_endpoint_changes_total` | counter | — | Re-resolutions that yielded a new IP |
+| `bifrost_recovery_duration_seconds` | gauge | — | Wall-clock duration of the last recovery episode |
+| `bifrost_recovery_in_progress` | gauge | — | `1` during a recovery episode, `0` otherwise |
+| `bifrost_resolve_duration_seconds` | gauge | — | Duration of the last `Resolve()` call |
 | `bifrost_probe_rtt_seconds` | gauge | — | Last probe RTT (only when `BIFROST_PROBE=on`) |
-| `bifrost_build_info` | gauge | `version` | Always `1`; carries the version label |
 
-The `peer` label contains the first 8 characters of the peer's base64 public key.
-Endpoint IPs and hostnames are never exposed as labels.
+**Interface (kernel sysfs, Linux only)**
+
+| Metric | Type | Labels | Description |
+|---|---|---|---|
+| `bifrost_interface_rx_bytes_total` | counter | — | Bytes received on the WireGuard interface |
+| `bifrost_interface_tx_bytes_total` | counter | — | Bytes transmitted on the WireGuard interface |
+| `bifrost_interface_rx_packets_total` | counter | — | Packets received |
+| `bifrost_interface_tx_packets_total` | counter | — | Packets transmitted |
+| `bifrost_interface_rx_errors_total` | counter | — | Receive errors |
+| `bifrost_interface_tx_errors_total` | counter | — | Transmit errors |
+| `bifrost_interface_rx_dropped_total` | counter | — | Dropped received packets |
+| `bifrost_interface_tx_dropped_total` | counter | — | Dropped transmitted packets |
+
+The `peer` label is the zero-based peer index (`"0"`, `"1"`, …) matching the
+order in `wgtypes.Device.Peers`. Interface stats are silently omitted when sysfs
+is unavailable (e.g. containers without `/sys` mounted).
 
 Metrics are read live from WireGuard on each scrape — no additional polling.
 Counters survive reconnects (they track process-lifetime totals).
