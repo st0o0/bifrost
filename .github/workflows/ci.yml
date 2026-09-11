@@ -11,11 +11,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  go:
     uses: st0o0/github-workflows/.github/workflows/go-ci.yml@main
     with:
       has-e2e: true
       docker-image-name: bifrost
 
-  commitlint:
+  commits:
     uses: st0o0/github-workflows/.github/workflows/commitlint.yml@main

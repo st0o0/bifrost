@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  docker:
     uses: st0o0/github-workflows/.github/workflows/go-dev-build.yml@main
     with:
       image-name: ghcr.io/st0o0/bifrost
