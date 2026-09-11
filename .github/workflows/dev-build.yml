@@ -3,6 +3,11 @@ name: Dev Build
 on:
   pull_request:
     types: [labeled, synchronize, reopened]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
 
 permissions:
   contents: read
