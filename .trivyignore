@@ -1,0 +1,5 @@
+# golang.org/x/crypto/ssh - not directly used by bifrost (indirect via wireguard)
+# channel mux chanList deadlock (Note, fixed in x/crypto v0.56.0)
+CVE-2026-78662
+# malicious peer channel deadlock (Note, fixed in x/crypto v0.56.0)
+CVE-2026-56855
