@@ -2,6 +2,11 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
 
 permissions:
   contents: read
@@ -14,7 +19,6 @@ jobs:
   go:
     uses: st0o0/github-workflows/.github/workflows/go-ci.yml@main
     with:
-      has-e2e: true
       docker-image-name: bifrost
 
   commits:
