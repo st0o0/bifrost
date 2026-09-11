@@ -1,8 +1,5 @@
 export default {
   extends: ["@commitlint/config-conventional"],
-  // Relaxed ruleset (matches Akka.Streams.Http): keep the type discipline that
-  // release-please needs, drop the stylistic nits (subject casing, line
-  // lengths) that reject otherwise fine commits like "ci(go): Go pipeline".
   rules: {
     "type-enum": [
       2,
@@ -26,5 +23,5 @@ export default {
     "footer-max-line-length": [0, "always"],
     "subject-case": [0, "always"],
   },
-  ignores: [(message) => message.includes("dependabot[bot]")],
+  ignores: [(message) => message.includes("renovate[bot]")],
 };
