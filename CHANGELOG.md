@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.2](https://github.com/st0o0/bifrost/compare/v0.2.1...v0.2.2) (2026-09-12)
+
+
+### Features
+
+* decouple release-please from build workflow ([5caf19e](https://github.com/st0o0/bifrost/commit/5caf19ea2ae86149caf27c01f7cace5ec03bd024))
+
+
+### Refactoring
+
+* migrate to shared reusable workflows ([f953582](https://github.com/st0o0/bifrost/commit/f953582390bf34508be15a3dd1983fae8ff5b5f4))
+* rename CI jobs for cleaner GitHub check names ([ec4a9d8](https://github.com/st0o0/bifrost/commit/ec4a9d890a9b510d02f7dff1803aab7760e8e321))
+
+
+### Dependencies
+
+* bump golang from 1.27rc2-alpine to 1.27-alpine ([cce3d01](https://github.com/st0o0/bifrost/commit/cce3d014356da7d38e2924c0ce9c5c123c34849b))
+* bump golang.org/x/crypto v0.54.0 -&gt; v0.57.0, add .trivyignore ([88bed7c](https://github.com/st0o0/bifrost/commit/88bed7c038daf36a363ad634927a7f9b0dc4c154))
+* bump hadolint/hadolint-action in the actions-all group ([4a18a85](https://github.com/st0o0/bifrost/commit/4a18a85aff58211c2b3a94f57459835956225107))
+
 ## [0.2.1](https://github.com/st0o0/bifrost/compare/v0.2.0...v0.2.1) (2026-08-16)
 
 
