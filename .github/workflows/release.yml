@@ -10,13 +10,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    uses: st0o0/github-workflows/.github/workflows/go-release.yml@main
-    with:
-      image-name: ghcr.io/st0o0/bifrost
-      image-description: "Minimal native-Go WireGuard client that keeps dependents tunneled across DDNS endpoint IP changes without a netns teardown"
+  release-please:
+    uses: st0o0/github-workflows/.github/workflows/release-please.yml@main
     permissions:
       contents: write
       pull-requests: write
+
+  docker:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: st0o0/github-workflows/.github/workflows/go-release-docker.yml@main
+    with:
+      version: ${{ needs.release-please.outputs.version }}
+      image-name: ghcr.io/st0o0/bifrost
+      image-description: "Minimal native-Go WireGuard client that keeps dependents tunneled across DDNS endpoint IP changes without a netns teardown"
+    permissions:
+      contents: read
       packages: write
       id-token: write
