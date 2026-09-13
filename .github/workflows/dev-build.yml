@@ -23,26 +23,11 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: dev
-    outputs:
-      version: ${{ steps.v.outputs.version }}
     steps:
-      - id: v
-        run: |
-          SHA=$(cut -c1-7 <<< '${{ github.event.pull_request.head.sha }}')
-          echo "version=0.0.0-pr.${{ github.event.pull_request.number }}.${SHA}" >> "$GITHUB_OUTPUT"
-
-  build:
-    needs: gate
-    uses: st0o0/github-workflows/.github/workflows/go-build.yml@main
-    with:
-      version: ${{ needs.gate.outputs.version }}
-      build-package: ./cmd/bifrost
-      binary-name: bifrost
-      extra-files: 'LICENSE NOTICE'
-      platforms: '[{"goos":"linux","goarch":"amd64","artifact-suffix":"linux-x64"}]'
+      - run: echo "Dev build gate passed"
 
   docker:
-    needs: build
+    needs: gate
     uses: st0o0/github-workflows/.github/workflows/docker-dev.yml@main
     with:
       image-name: ghcr.io/st0o0/bifrost

@@ -16,20 +16,8 @@ jobs:
       contents: write
       pull-requests: write
 
-  build:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
-    uses: st0o0/github-workflows/.github/workflows/go-build.yml@main
-    with:
-      version: ${{ needs.release-please.outputs.version }}
-      build-package: ./cmd/bifrost
-      binary-name: bifrost
-      extra-files: 'LICENSE NOTICE'
-    permissions:
-      contents: read
-
   docker:
-    needs: [release-please, build]
+    needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     uses: st0o0/github-workflows/.github/workflows/docker-release.yml@main
     with:
