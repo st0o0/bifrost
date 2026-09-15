@@ -35,3 +35,4 @@ jobs:
     permissions:
       packages: write
       pull-requests: write
+      id-token: write
