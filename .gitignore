@@ -1,16 +1,34 @@
-# Local design/plan docs — never committed
+# Go build output
+/bifrost
+*.exe
+
+# Coverage
+*_cov.out
+coverage/
+
+# Design docs (local only)
 docs/
+
+# Claude Code
+.claude/
+
+# Worktrees
+.worktrees/
 
 # Editor / OS
 .idea/
 .vscode/
 .DS_Store
 *.swp
+*.swo
+*~
 
 # Test artifacts
 tests/tmp/
 *.log
 
-# Go build output
-/bifrost
-/bifrost.exe
+# Environment files
+**.env
+
+# Secrets
+.secrets/
