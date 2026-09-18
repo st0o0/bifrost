@@ -1,4 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>st0o0/renovate-config:go"]
+  "extends": ["local>st0o0/renovate-config:go", "local>st0o0/renovate-config:docker"]
 }
