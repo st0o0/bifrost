@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.3](https://github.com/st0o0/bifrost/compare/v0.2.2...v0.2.3) (2026-09-18)
+
+
+### Features
+
+* extend docker preset for base image digest pinning + automerge ([9dacbca](https://github.com/st0o0/bifrost/commit/9dacbca3cc348c2245f882f1209f60c5344bce3c))
+* migrate to modular build and docker workflows ([70c021b](https://github.com/st0o0/bifrost/commit/70c021bc74d1b5d1098f96a4d27b1ecafe65c539))
+* migrate to multi-stage Dockerfile ([86d03a7](https://github.com/st0o0/bifrost/commit/86d03a74ba53274508ca0f688558a136129d9c0d))
+
+
+### Bug Fixes
+
+* add id-token permission for cosign signing in dev builds ([dad99ac](https://github.com/st0o0/bifrost/commit/dad99acab1363e8ffbf2595185c95ddfdbddbedf))
+* grant contents:read and drop paths filter in dev-build docker job ([455be33](https://github.com/st0o0/bifrost/commit/455be333ec947f641d5d0a00f1778bac7247b330))
+
+
+### Documentation
+
+* align README badges ([13751c2](https://github.com/st0o0/bifrost/commit/13751c2c75f2d2d62e70a9309253b247451ec31d))
+
 ## [0.2.2](https://github.com/st0o0/bifrost/compare/v0.2.1...v0.2.2) (2026-09-12)
 
 
