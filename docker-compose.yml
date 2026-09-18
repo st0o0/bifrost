@@ -1,6 +1,6 @@
 services:
   bifrost:
-    image: ghcr.io/st0o0/bifrost:latest
+    image: ghcr.io/st0o0/bifrost:latest@sha256:5fe6f52211487bc04e0c9c1be2174dc43e1cbfd755374f682b477d12e57b5ac0
     container_name: bifrost
     restart: unless-stopped
     cap_add:
