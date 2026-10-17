@@ -7,7 +7,7 @@ import (
 )
 
 // Targets returns the probe targets as strings (IPs or, for a PROBE_HOST
-// override, possibly hostnames — resolution is the pinger's job). Without an
+// override, possibly hostnames; resolution is the pinger's job). Without an
 // override it derives the /32 (IPv4) and /128 (IPv6) host entries of every
 // peer's AllowedIPs.
 func Targets(cfg *config.Config, probeHost string) []string {

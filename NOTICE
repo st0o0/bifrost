@@ -6,13 +6,13 @@ bifrost is a pure-Go static binary; the distributed container image bundles
 no third-party GPL software. Its Go module dependencies are permissively
 licensed (MIT/Apache-2.0), including:
 
-  - golang.zx2c4.com/wireguard/wgctrl (MIT) — native kernel WireGuard control
+  - golang.zx2c4.com/wireguard/wgctrl (MIT): native kernel WireGuard control
     via netlink
-  - golang.zx2c4.com/wireguard (MIT) — embedded wireguard-go userspace
+  - golang.zx2c4.com/wireguard (MIT): embedded wireguard-go userspace
     fallback device
-  - github.com/vishvananda/netlink (Apache-2.0) — Linux netlink interface
+  - github.com/vishvananda/netlink (Apache-2.0): Linux netlink interface
     management
-  - github.com/prometheus-community/pro-bing (MIT) — native ICMP liveness
+  - github.com/prometheus-community/pro-bing (MIT): native ICMP liveness
     probe
 
 See each module's repository for its full license text.

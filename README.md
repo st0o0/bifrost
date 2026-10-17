@@ -5,8 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 A minimal WireGuard **client** container that keeps dependent containers
-tunneled across DDNS endpoint IP changes — **without tearing down its network
-namespace**. The Norse rainbow bridge between your networks.
+tunneled across DDNS endpoint IP changes, **without tearing down its network
+namespace**.
 
 ```yaml
 services:
@@ -33,8 +33,8 @@ services:
 
 - **Self-healing, two-stage recovery.** A supervisor watches handshake
   freshness and, on a stale tunnel, first re-resolves the endpoint in place
-  (native netlink peer-endpoint update, no interface flap), then — only if
-  that fails — actively rebuilds the tunnel (native interface down/up). Both
+  (native netlink peer-endpoint update, no interface flap), then, only if
+  that fails, actively rebuilds the tunnel (native interface down/up). Both
   stages retry with exponential backoff.
 - **DDNS-native.** The endpoint may be a hostname; bifrost re-resolves it when
   the peer's IP changes. Dependents on `network_mode: service:bifrost` never
@@ -43,13 +43,13 @@ services:
   natively over netlink (via `wgctrl`) when available; otherwise falls back to
   an embedded `wireguard-go` userspace device. No `SYS_MODULE`, no
   `/lib/modules` mount, no PUID/PGID, no s6.
-- **Split-tunnel friendly.** No forced killswitch — route only the subnets your
+- **Split-tunnel friendly.** No forced killswitch: route only the subnets your
   `AllowedIPs` list, everything else goes direct.
 - **Fully configurable & toggleable.** Every threshold, retry count, and backoff
   is an env var; the resolve stage, the reconnect stage, and the healthcheck can
   each be turned off.
 - **Single static Go binary, tiny image.** A ~7.5 MB `scratch` image for
-  `linux/amd64` and `linux/arm64` — no shell, no coreutils, no
+  `linux/amd64` and `linux/arm64`, with no shell, no coreutils, and no
   `wireguard-tools` bundled. Just the binary, `LICENSE`, and `NOTICE`.
 
 ## Why
@@ -74,7 +74,7 @@ services:
 1. Put your WireGuard client config at `./wg/wg0.conf`. An existing
    linuxserver/wireguard client config works unchanged. For NAT keepalive add
    `PersistentKeepalive = 25` under `[Peer]`.
-2. `cp .env.example .env` (optional — every value has a sane default).
+2. `cp .env.example .env` (optional, every value has a sane default).
 3. `docker compose up -d`
 
 ```bash
@@ -87,7 +87,7 @@ the service `network_mode: "service:bifrost"`.
 
 ### Key & CLI helpers
 
-The image doubles as a tiny WireGuard key toolbox — no `wireguard-tools` needed
+The image doubles as a tiny WireGuard key toolbox, no `wireguard-tools` needed
 on the host:
 
 ```bash
@@ -154,7 +154,7 @@ All configuration is via environment variables (see `.env.example`).
 | `BIFROST_CHECK_INTERVAL` | `30` | How often to check handshake freshness (seconds, ≥ 1) |
 | `BIFROST_STALE_AFTER` | `135` | Handshake age (seconds) that triggers a recovery episode |
 
-### Recovery — stage 1: resolve (gentle, in place)
+### Recovery, stage 1: resolve (gentle, in place)
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -162,7 +162,7 @@ All configuration is via environment variables (see `.env.example`).
 | `BIFROST_RESOLVE_RETRIES` | `5` | Attempts per episode |
 | `BIFROST_RESOLVE_BACKOFF` | `5` | Base backoff (seconds, exponential, cap 60) |
 
-### Recovery — stage 2: reconnect (active native interface down/up)
+### Recovery, stage 2: reconnect (active native interface down/up)
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -175,8 +175,8 @@ All configuration is via environment variables (see `.env.example`).
 Recovery normally triggers on handshake age, whose floor is ~135 s (WireGuard
 rekeys a healthy tunnel roughly every 120 s, and its timers aren't tunable). To
 react faster, enable an active ICMP probe: it pings the tunnel-internal hosts
-and triggers recovery when they go unreachable — typically within ~30 s at the
-conservative defaults. It is an **additional, independent** trigger; whichever
+and triggers recovery when they go unreachable, typically within ~30 s at the
+conservative defaults. It is an additional, independent trigger; whichever
 fires first (probe or handshake age) starts recovery.
 
 | Variable | Default | Purpose |
@@ -192,10 +192,10 @@ requires the `NET_RAW` capability. Add `cap_add: [NET_RAW]` alongside
 `NET_ADMIN` whenever `BIFROST_PROBE=on`; it is not needed otherwise.
 
 Targets are pinged **inside** the tunnel; a round counts as down only when
-**every** target fails, so a single offline host never triggers recovery — only
+**every** target fails, so a single offline host never triggers recovery, only
 a genuinely dead tunnel does. Ranges and `0.0.0.0/0` are skipped (not pingable);
 for a full-tunnel setup set `BIFROST_PROBE_HOST` explicitly. At least one target
-must answer ICMP — otherwise every round reads "all down"
+must answer ICMP, otherwise every round reads "all down"
 and (with the reconnect stage active) flaps a healthy tunnel. On first enable,
 set `BIFROST_PROBE_HOST` to your server's tunnel IP, which reliably answers.
 
@@ -231,8 +231,8 @@ When enabled, Bifrost exposes these metrics (all prefixed `bifrost_`):
 
 | Metric | Type | Labels | Description |
 |---|---|---|---|
-| `bifrost_tunnel_up` | gauge | — | `1` if any peer handshake is non-stale, `0` otherwise |
-| `bifrost_tunnel_up_since_seconds` | gauge | — | Unix timestamp of when the tunnel was last brought up |
+| `bifrost_tunnel_up` | gauge | - | `1` if any peer handshake is non-stale, `0` otherwise |
+| `bifrost_tunnel_up_since_seconds` | gauge | - | Unix timestamp of when the tunnel was last brought up |
 | `bifrost_device_info` | gauge | `type` | Always `1`; `type` is `kernel` or `userspace` |
 | `bifrost_build_info` | gauge | `version` | Always `1`; carries the version label |
 
@@ -250,32 +250,32 @@ When enabled, Bifrost exposes these metrics (all prefixed `bifrost_`):
 
 | Metric | Type | Labels | Description |
 |---|---|---|---|
-| `bifrost_reconnects_total` | counter | — | Process-lifetime reconnect attempts |
-| `bifrost_resolves_total` | counter | — | Process-lifetime DDNS re-resolution attempts |
-| `bifrost_endpoint_changes_total` | counter | — | Re-resolutions that yielded a new IP |
-| `bifrost_recovery_duration_seconds` | gauge | — | Wall-clock duration of the last recovery episode |
-| `bifrost_recovery_in_progress` | gauge | — | `1` during a recovery episode, `0` otherwise |
-| `bifrost_resolve_duration_seconds` | gauge | — | Duration of the last `Resolve()` call |
-| `bifrost_probe_rtt_seconds` | gauge | — | Last probe RTT (only when `BIFROST_PROBE=on`) |
+| `bifrost_reconnects_total` | counter | - | Process-lifetime reconnect attempts |
+| `bifrost_resolves_total` | counter | - | Process-lifetime DDNS re-resolution attempts |
+| `bifrost_endpoint_changes_total` | counter | - | Re-resolutions that yielded a new IP |
+| `bifrost_recovery_duration_seconds` | gauge | - | Wall-clock duration of the last recovery episode |
+| `bifrost_recovery_in_progress` | gauge | - | `1` during a recovery episode, `0` otherwise |
+| `bifrost_resolve_duration_seconds` | gauge | - | Duration of the last `Resolve()` call |
+| `bifrost_probe_rtt_seconds` | gauge | - | Last probe RTT (only when `BIFROST_PROBE=on`) |
 
 **Interface (kernel sysfs, Linux only)**
 
 | Metric | Type | Labels | Description |
 |---|---|---|---|
-| `bifrost_interface_rx_bytes_total` | counter | — | Bytes received on the WireGuard interface |
-| `bifrost_interface_tx_bytes_total` | counter | — | Bytes transmitted on the WireGuard interface |
-| `bifrost_interface_rx_packets_total` | counter | — | Packets received |
-| `bifrost_interface_tx_packets_total` | counter | — | Packets transmitted |
-| `bifrost_interface_rx_errors_total` | counter | — | Receive errors |
-| `bifrost_interface_tx_errors_total` | counter | — | Transmit errors |
-| `bifrost_interface_rx_dropped_total` | counter | — | Dropped received packets |
-| `bifrost_interface_tx_dropped_total` | counter | — | Dropped transmitted packets |
+| `bifrost_interface_rx_bytes_total` | counter | - | Bytes received on the WireGuard interface |
+| `bifrost_interface_tx_bytes_total` | counter | - | Bytes transmitted on the WireGuard interface |
+| `bifrost_interface_rx_packets_total` | counter | - | Packets received |
+| `bifrost_interface_tx_packets_total` | counter | - | Packets transmitted |
+| `bifrost_interface_rx_errors_total` | counter | - | Receive errors |
+| `bifrost_interface_tx_errors_total` | counter | - | Transmit errors |
+| `bifrost_interface_rx_dropped_total` | counter | - | Dropped received packets |
+| `bifrost_interface_tx_dropped_total` | counter | - | Dropped transmitted packets |
 
 The `peer` label is the zero-based peer index (`"0"`, `"1"`, …) matching the
 order in `wgtypes.Device.Peers`. Interface stats are silently omitted when sysfs
 is unavailable (e.g. containers without `/sys` mounted).
 
-Metrics are read live from WireGuard on each scrape — no additional polling.
+Metrics are read live from WireGuard on each scrape, with no additional polling.
 Counters survive reconnects (they track process-lifetime totals).
 
 Because consumers attach via `network_mode: service:bifrost`, a sibling container
@@ -297,34 +297,34 @@ whether it loads the kernel module itself:
 
 | Image | `NET_ADMIN` | `NET_RAW` | `SYS_MODULE` | `/lib/modules` mount | `/dev/net/tun` | Data path |
 |---|:---:|:---:|:---:|:---:|:---:|---|
-| **bifrost** | ✅ | only w/ probe | — | — | only w/o kernel module | kernel-first, userspace fallback |
-| linuxserver/wireguard | ✅ | — | ✅ | ✅ | — | kernel module (loads it) |
-| gluetun | ✅ | — | — | — | ✅ | userspace (TUN) |
-| wg-easy *(server)* | ✅ | — | ✅ | ✅ | — | kernel module |
+| **bifrost** | ✅ | only w/ probe | - | - | only w/o kernel module | kernel-first, userspace fallback |
+| linuxserver/wireguard | ✅ | - | ✅ | ✅ | - | kernel module (loads it) |
+| gluetun | ✅ | - | - | - | ✅ | userspace (TUN) |
+| wg-easy *(server)* | ✅ | - | ✅ | ✅ | - | kernel module |
 
 **When do I need `/dev/net/tun`?** Only when WireGuard runs in userspace. For
 bifrost that's *only* if the host has no in-kernel WireGuard module. WireGuard
 has shipped in the Linux kernel since 5.6 (2020), so on virtually any modern host
-**bifrost needs just `cap_add: [NET_ADMIN]`** — nothing else. Add `/dev/net/tun`
+**bifrost needs just `cap_add: [NET_ADMIN]`**, nothing else. Add `/dev/net/tun`
 for old kernels, some NAS boxes, or restricted/managed hosts (harmless to always
 include).
 
 **When do I need `NET_RAW`?** Only when the liveness probe is enabled
 (`BIFROST_PROBE=on`); bifrost sends raw ICMP echo requests natively to check
-tunnel reachability. Leave it off if you don't use the probe — recovery still
+tunnel reachability. Leave it off if you don't use the probe; recovery still
 works off handshake age alone.
 
 **When do I need `SYS_MODULE` + `/lib/modules`?** Only for images that (re)load
-the kernel module themselves (linuxserver, wg-easy). bifrost never does — it uses
+the kernel module themselves (linuxserver, wg-easy). bifrost never does; it uses
 the module if present, otherwise it falls back to userspace.
 
-Quick check — does your host already have in-kernel WireGuard?
+Quick check: does your host already have in-kernel WireGuard?
 
 ```bash
 if test -d /sys/module/wireguard || modprobe wireguard 2>/dev/null; then
-  echo "in-kernel WireGuard available — bifrost needs only NET_ADMIN"
+  echo "in-kernel WireGuard available: bifrost needs only NET_ADMIN"
 else
-  echo "no kernel module — add --device /dev/net/tun for the userspace fallback"
+  echo "no kernel module: add --device /dev/net/tun for the userspace fallback"
 fi
 ```
 
@@ -336,14 +336,14 @@ fi
 
 ## Troubleshooting
 
-- **`config not found at /etc/wireguard/wg0.conf`** — the config isn't mounted at
+- **`config not found at /etc/wireguard/wg0.conf`**: the config isn't mounted at
   the path implied by `BIFROST_INTERFACE`. Mount it read-only there.
-- **Container is `unhealthy`** — no recent handshake. Check `docker logs bifrost`
+- **Container is `unhealthy`**: no recent handshake. Check `docker logs bifrost`
   for the data path and recovery attempts; verify the server is reachable and
   (for DDNS) that the hostname resolves.
-- **Dependent app has no network** — it must use `network_mode: "service:bifrost"`
+- **Dependent app has no network**: it must use `network_mode: "service:bifrost"`
   and publish its ports on the **bifrost** container, not on itself.
-- **Recovery seems slow** — recovery starts only after `BIFROST_STALE_AFTER`; lower
+- **Recovery seems slow**: recovery starts only after `BIFROST_STALE_AFTER`; lower
   it (and the backoffs) for faster reaction, raise it to be conservative.
 
 ## Development

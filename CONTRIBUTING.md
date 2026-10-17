@@ -22,7 +22,7 @@ docker build -t bifrost:ci . && ./tests/e2e/run.sh
 
 ## Pull requests
 
-- Branch from `main` and open a PR — CI (test, lint, build, e2e) runs on pull
+- Branch from `main` and open a PR. CI (test, lint, build, e2e) runs on pull
   requests.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `docs:`, `ci:`, `chore:`, …); commitlint enforces this and

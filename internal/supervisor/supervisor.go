@@ -102,7 +102,7 @@ func Run(ctx context.Context, d Deps, s *config.Settings, targets []string) {
 
 	// everHandshaked latches true the first time NewestHandshake() is
 	// observed to be non-zero. Unlike the instantaneous handshake check, it
-	// never resets — so a reconnect that leaves the handshake transiently
+	// never resets, so a reconnect that leaves the handshake transiently
 	// zero (e.g. DDNS not yet propagated) does not permanently silence
 	// either trigger.
 	var everHandshaked bool

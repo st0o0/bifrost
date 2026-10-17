@@ -203,7 +203,7 @@ func (t *Tunnel) configure() error {
 
 // setupNetwork assigns the interface's addresses, MTU, and split-tunnel
 // routes, then brings the link up. Default routes (0.0.0.0/0, ::/0) are
-// skipped with a warning — full-tunnel routing is deferred. DNS= is ignored
+// skipped with a warning; full-tunnel routing is deferred. DNS= is ignored
 // entirely (warned by the caller during config parsing).
 func (t *Tunnel) setupNetwork() error {
 	link, err := netlink.LinkByName(t.iface)
@@ -294,14 +294,14 @@ func (t *Tunnel) Close() error {
 }
 
 // isExist reports whether err indicates the target of a netlink operation
-// (link, address, or route) already exists — i.e. it's safe to treat as
+// (link, address, or route) already exists, i.e. it's safe to treat as
 // non-fatal rather than aborting bring-up.
 func isExist(err error) bool {
 	return errors.Is(err, os.ErrExist) || errors.Is(err, syscall.EEXIST)
 }
 
 // isDefaultRoute reports whether prefix is a default route (0.0.0.0/0 or
-// ::/0) — full-tunnel routing, deferred to a later phase.
+// ::/0), i.e. full-tunnel routing, deferred to a later phase.
 func isDefaultRoute(p netip.Prefix) bool {
 	return p.Bits() == 0
 }

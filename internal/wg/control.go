@@ -27,7 +27,7 @@ func (t *Tunnel) NewestHandshake() time.Time {
 
 // NewestHandshakeVia queries an already-open wgctrl client for the newest
 // handshake on iface. It's a standalone helper (rather than a Tunnel method)
-// so a short-lived process — the `bifrost healthcheck` subcommand — can query
+// so a short-lived process (the `bifrost healthcheck` subcommand) can query
 // an already-configured interface without going through Bring() (which would
 // try to create the link and reconfigure it).
 func NewestHandshakeVia(client *wgctrl.Client, iface string) time.Time {
@@ -45,7 +45,7 @@ func NewestHandshakeVia(client *wgctrl.Client, iface string) time.Time {
 }
 
 // Resolve re-resolves each peer's hostname endpoint and updates it in place
-// (UpdateOnly: true — never creates a new peer). Peers with no hostname
+// (UpdateOnly: true, so it never creates a new peer). Peers with no hostname
 // endpoint, or whose hostname doesn't currently resolve, are left untouched.
 // If a peer's resolved IP differs from its current endpoint, OnEndpointChange
 // is called (if set).

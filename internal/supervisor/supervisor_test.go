@@ -279,7 +279,7 @@ func TestEmptyTargetsDisablesProbe(t *testing.T) {
 // I-1: the handshake starts non-zero (latching everHandshaked), then a
 // reconnect leaves it transiently zero (e.g. the rebuilt interface hasn't
 // re-handshaked yet because DDNS hasn't propagated). A subsequent check tick
-// must still trigger recovery — the loop must not go permanently dormant
+// must still trigger recovery; the loop must not go permanently dormant
 // just because NewestHandshake() is momentarily zero.
 func TestReconnectDoesNotGoDormant(t *testing.T) {
 	s := baseSettings()

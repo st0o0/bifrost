@@ -3,7 +3,7 @@
 ## Supported versions
 
 The latest released image (`ghcr.io/st0o0/bifrost:latest`) receives security
-updates. Older tags are not maintained — pin to a `MAJOR.MINOR` tag and update
+updates. Older tags are not maintained, so pin to a `MAJOR.MINOR` tag and update
 regularly.
 
 ## Reporting a vulnerability
