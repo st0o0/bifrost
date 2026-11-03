@@ -38,7 +38,7 @@ Linux-only packages (`internal/wg`, `cmd/bifrost`) are build-tagged `linux`. Log
 - Metric names prefixed with `bifrost_`
 - Custom Prometheus registry (never DefaultRegisterer)
 - Errors wrapped with `fmt.Errorf` and `%w`
-- Config loaded via `config.LoadSettings(os.Getenv)` -- testable by injecting getenv
+- Config loaded via `config.LoadSettings(os.Getenv)` - testable by injecting getenv
 
 ## Deployment
 
@@ -46,8 +46,8 @@ Single static binary in a ~7.5 MB scratch image for linux/amd64 and linux/arm64.
 
 ## Security-sensitive areas
 
-- `internal/config/` -- parses WireGuard .conf including private keys
-- `internal/wg/` -- netlink interface control, key material in memory via wgctrl
-- `internal/recovery/` -- interface down/up, endpoint mutation
-- `internal/probe/` -- raw ICMP socket (NET_RAW capability)
-- `cmd/bifrost/` -- key generation subcommands (genkey, pubkey)
+- `internal/config/` - parses WireGuard .conf including private keys
+- `internal/wg/` - netlink interface control, key material in memory via wgctrl
+- `internal/recovery/` - interface down/up, endpoint mutation
+- `internal/probe/` - raw ICMP socket (NET_RAW capability)
+- `cmd/bifrost/` - key generation subcommands (genkey, pubkey)
