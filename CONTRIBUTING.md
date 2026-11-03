@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in bifrost!
+Thanks for your interest in bifröst!
 
 ## Development
 

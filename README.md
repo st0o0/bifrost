@@ -1,4 +1,4 @@
-# bifrost
+# bifröst
 
 [![Release](https://img.shields.io/github/v/release/st0o0/bifrost?sort=semver&style=flat-square)](https://github.com/st0o0/bifrost/releases)
 [![GHCR](https://img.shields.io/badge/ghcr.io-st0o0%2Fbifrost-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/st0o0/bifrost/pkgs/container/bifrost)

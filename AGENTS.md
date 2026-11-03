@@ -1,4 +1,4 @@
-# Bifrost
+# bifröst
 
 Minimal WireGuard client container with self-healing DDNS recovery, no network namespace teardown on reconnect.
 
