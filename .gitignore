@@ -9,8 +9,10 @@ coverage/
 # Design docs (local only)
 docs/
 
-# Claude Code
-.claude/
+# Claude Code (skills and commands are tracked explicitly)
+.claude/*
+!.claude/skills/
+!.claude/commands/
 
 # Worktrees
 .worktrees/
