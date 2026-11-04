@@ -1,6 +1,6 @@
 module github.com/st0o0/bifrost
 
-go 1.26.5
+go 1.27
 
 require (
 	github.com/prometheus-community/pro-bing v0.9.1
