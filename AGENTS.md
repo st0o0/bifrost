@@ -29,7 +29,7 @@ Linux-only packages (`internal/wg`, `cmd/bifrost`) are build-tagged `linux`. Log
 
 ## Conventions
 
-- Go 1.26+, kernel-first WireGuard via wgctrl, embedded wireguard-go userspace fallback
+- Go 1.27+, kernel-first WireGuard via wgctrl, embedded wireguard-go userspace fallback
 - Conventional commits: feat/fix/perf/docs/chore/refactor/test/ci/build/deps
 - commitlint enforced, release-please for versioning
 - golangci-lint v2, hadolint for Dockerfile

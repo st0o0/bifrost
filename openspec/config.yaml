@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   Project: bifrost — a minimal, self-healing WireGuard client container
-  Language: Go 1.26, Linux-only (build-tagged)
+  Language: Go 1.27, Linux-only (build-tagged)
   Architecture: CLI daemon with subcommands (healthcheck, handshake, genkey, pubkey, version)
   Key packages:
     - cmd/bifrost — entry point and subcommands

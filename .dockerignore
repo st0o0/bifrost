@@ -5,7 +5,6 @@ docs
 openspec
 tests
 *.md
-!LICENSE.md
 .hadolint.yaml
 .trivyignore
 .golangci.yml
