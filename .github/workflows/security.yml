@@ -31,6 +31,7 @@ jobs:
       scan-type: fs
     permissions:
       contents: read
+      packages: read
       security-events: write
 
   image:
@@ -38,6 +39,7 @@ jobs:
     uses: st0o0/github-workflows/.github/workflows/security.yml@main
     permissions:
       contents: read
+      packages: read
       security-events: write
 
   registry-image:
@@ -47,5 +49,6 @@ jobs:
       scan-type: registry-image
       image-ref: ghcr.io/st0o0/bifrost:latest
     permissions:
+      contents: read
       packages: read
       security-events: write
