@@ -15,9 +15,6 @@ on:
   schedule:
     - cron: '0 6 * * 1'
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Release"]
-    types: [completed]
 
 concurrency:
   group: security-${{ github.ref }}
@@ -25,13 +22,12 @@ concurrency:
 
 jobs:
   source:
-    if: github.event_name != 'schedule' && github.event_name != 'workflow_run'
+    if: github.event_name != 'schedule'
     uses: st0o0/github-workflows/.github/workflows/security.yml@main
     with:
       scan-type: fs
     permissions:
       contents: read
-      packages: read
       security-events: write
 
   image:
@@ -39,16 +35,4 @@ jobs:
     uses: st0o0/github-workflows/.github/workflows/security.yml@main
     permissions:
       contents: read
-      packages: read
-      security-events: write
-
-  registry-image:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-    uses: st0o0/github-workflows/.github/workflows/security.yml@main
-    with:
-      scan-type: registry-image
-      image-ref: ghcr.io/st0o0/bifrost:latest
-    permissions:
-      contents: read
-      packages: read
       security-events: write
