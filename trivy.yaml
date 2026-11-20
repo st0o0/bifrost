@@ -1,0 +1,7 @@
+misconfiguration:
+  check:
+    skip:
+      # DS-0002: "Image user should not be root"
+      # bifrost requires root/CAP_NET_ADMIN for netlink interface creation,
+      # WireGuard tunnel management, and privileged ICMP pings.
+      - DS-0002
